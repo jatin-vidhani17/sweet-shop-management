@@ -1,43 +1,40 @@
-const bcrypt = require('bcryptjs');
-const dbConnect = require('../db');
+// server/api/auth/register.js
+const connectDB = require('../../api/db');
 const User = require('../../models/User');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  const { username, email, password, confirmPassword } = req.body || {};
-
-  if (!username || !email || !password || !confirmPassword) {
-    return res.status(400).json({ message: 'Missing required fields' });
-  }
-
-  if (password !== confirmPassword) {
-    return res.status(400).json({ message: 'Passwords do not match' });
+    res.status(405).json({ message: 'Method Not Allowed' });
+    return;
   }
 
   try {
-    await dbConnect();
+    // Parse from Next.js or Vercel body (may differ, tweak if using native Node)
+    const { name, role, email, password, confirmPassword } = req.body || JSON.parse(req.body);
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ message: 'User already exists' });
-    }
+    if (!name || !role || !email || !password || !confirmPassword)
+      return res.status(400).json({ message: 'Please enter all fields' });
+
+    if (password !== confirmPassword)
+      return res.status(400).json({ message: "Passwords don't match" });
+
+    await connectDB(); // Make DB connection per function call
+
+    let user = await User.findOne({ email });
+    if (user)
+      return res.status(400).json({ message: 'User with that email already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    user = await User.create({ name, role, email, password: hashedPassword });
 
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-    });
+    const payload = { user: { id: user.id, role: user.role } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    await newUser.save();
+    res.status(201).json({ token });
 
-    return res.status(201).json({ message: 'User registered successfully' });
-  } catch (error) {
-    console.error('Registration error:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
