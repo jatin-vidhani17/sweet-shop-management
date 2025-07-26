@@ -1,16 +1,27 @@
+// tests/db.test.js
 require('dotenv').config({ path: '../.env' });
-const connectDB = require('../api/db');
 const mongoose = require('mongoose');
+const connectDB = require('../api/db');
+
+jest.setTimeout(30000); // Increase timeout to 30 seconds for Atlas connections
 
 describe('MongoDB Connection (Serverless Style)', () => {
+  beforeAll(async () => {
+    // Ensure MONGO_URI is set
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI must be defined in .env for tests');
+    }
+    await connectDB(); // Establish connection before tests
+  });
+
   afterAll(async () => {
-    await mongoose.disconnect();
+    await mongoose.disconnect(); // Properly disconnect after tests
   });
 
   test('should connect successfully to MongoDB', async () => {
     const connection = await connectDB();
-    expect(connection.readyState).toBe(1);
-  });
+    expect(connection.readyState).toBe(1); // Connected state
+  }, 20000);
 
   test('throws error if MONGO_URI is not set', async () => {
     const originalUri = process.env.MONGO_URI;
@@ -30,8 +41,8 @@ describe('MongoDB Connection (Serverless Style)', () => {
   test('can reconnect after disconnect', async () => {
     await connectDB();
     await mongoose.disconnect();
-    expect(mongoose.connection.readyState).toBe(0);
+    expect(mongoose.connection.readyState).toBe(0); // Disconnected state
     const conn = await connectDB();
-    expect(conn.readyState).toBe(1);
+    expect(conn.readyState).toBe(1); // Connected state
   });
 });
