@@ -1,0 +1,18 @@
+# Ignore node_modules from both server and client
+client/node_modules/
+server/node_modules/
+
+# Ignore environment files
+server/.env
+client/.env
+
+# Ignore logs
+*.log
+npm-debug.log*
+
+# VS Code settings
+.vscode/
+
+# MacOS and Windows junk files
+.DS_Store
+Thumbs.db
