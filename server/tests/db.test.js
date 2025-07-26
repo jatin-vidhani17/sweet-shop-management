@@ -1,24 +1,18 @@
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+// server/tests/db.test.js
+require('dotenv').config({ path: '../.env' });
+// Or use the correct relative path to your .env if it's elsewhere
+ // Ensure env is loaded
 const connectDB = require('../api/db');
+const mongoose = require('mongoose');
 
-let mongoServer;
+describe('MongoDB Connection (Serverless Style)', () => {
+  afterAll(async () => {
+    await mongoose.disconnect();
+  });
 
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  process.env.MONGO_URI = mongoServer.getUri();
-  await connectDB();
-});
-
-afterAll(async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  await mongoServer.stop();
-});
-
-describe('MongoDB Connection', () => {
-  it('should connect to in-memory MongoDB', async () => {
-    const state = mongoose.connection.readyState;
-    expect(state).toBe(1); // 1 = connected
+  test('should connect successfully to MongoDB', async () => {
+    const connection = await connectDB();
+    expect(connection.readyState).toBe(1); // 1 = connected
   });
 });
+// server/tests/db.test.js
