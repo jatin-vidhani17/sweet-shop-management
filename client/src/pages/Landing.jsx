@@ -26,7 +26,7 @@ const Landing = () => {
       name: "Chocolate Delights",
       description: "Rich and creamy chocolate sweets",
       image_url: "🍫",
-      price: 12.99,
+      price: 899,
       rating: 4.8,
       stock: 50
     },
@@ -35,7 +35,7 @@ const Landing = () => {
       name: "Fruity Gummies",
       description: "Fresh fruit flavored gummy bears",
       image_url: "🍬",
-      price: 8.99,
+      price: 649,
       rating: 4.6,
       stock: 75
     },
@@ -44,7 +44,7 @@ const Landing = () => {
       name: "Classic Candies",
       description: "Traditional hard candies assortment",
       image_url: "🍭",
-      price: 15.99,
+      price: 1199,
       rating: 4.9,
       stock: 30
     }
@@ -246,7 +246,7 @@ const Landing = () => {
                     <span className="ml-2 text-sm text-gray-600">({sweet.rating || 4.5})</span>
                   </div>
                   <div className="text-2xl font-bold text-orange-500 mb-2">
-                    ${typeof sweet.price === 'number' ? sweet.price.toFixed(2) : sweet.price}
+                    ₹{typeof sweet.price === 'number' ? sweet.price : sweet.price}
                   </div>
                   {sweet.stock && (
                     <div className="text-sm text-gray-500 mb-4">

@@ -33,11 +33,18 @@ const Home = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/sweets');
-      const sweets = response.data.sweets || [];
+      const response = await axios.get('https://sweet-shop-management-psi.vercel.app/api/sweets', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Dashboard API response:', response.data);
+      const sweets = Array.isArray(response.data) ? response.data : [];
       
       // Calculate stats
-      const lowStockCount = sweets.filter(sweet => sweet.quantity < 10).length;
+      const lowStockCount = sweets.filter(sweet => (sweet.stock || sweet.quantity || 0) < 10).length;
       
       setStats({
         totalSweets: sweets.length,
@@ -76,7 +83,7 @@ const Home = () => {
       <div className="sweet-info">
         <h4 className="sweet-name">{sweet.name}</h4>
         <p className="sweet-category">{sweet.category}</p>
-        <div className="sweet-price">${sweet.price}</div>
+        <div className="sweet-price">₹{sweet.price}</div>
         <div className="sweet-stock">
           {sweet.quantity > 10 ? (
             <span className="stock-good">In Stock ({sweet.quantity})</span>
@@ -92,51 +99,59 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="home-container">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 pt-16">
       {/* Hero Section */}
-      <section className="hero-section">
-        <div className="container">
-          <div className="hero-content">
-            <div className="hero-text">
-              <h1 className="hero-title">
-                Welcome back, <span className="orange-text">{user?.name}!</span>
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between">
+            <div className="lg:w-1/2 mb-8 lg:mb-0">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                Welcome back, <span className="text-orange-500">{user?.name}!</span>
               </h1>
-              <p className="hero-subtitle">
+              <p className="text-xl text-gray-600 mb-8 max-w-2xl">
                 {isAdmin 
                   ? "Manage your sweet shop with ease. Monitor inventory, track sales, and keep your customers happy."
                   : "Discover delicious sweets and treats. Your favorite confectionery store awaits!"
                 }
               </p>
-              <div className="hero-actions">
+              <div className="flex flex-col sm:flex-row gap-4">
                 {isAdmin ? (
-                  <Link to="/admin" className="btn btn-primary">
-                    <Settings size={20} />
+                  <Link to="/admin" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg inline-flex items-center justify-center">
+                    <Settings size={20} className="mr-2" />
                     Admin Dashboard
                   </Link>
                 ) : (
-                  <Link to="/shopping" className="btn btn-primary">
-                    <ShoppingCart size={20} />
+                  <Link to="/shopping" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg inline-flex items-center justify-center">
+                    <ShoppingCart size={20} className="mr-2" />
                     Start Shopping
                   </Link>
                 )}
               </div>
             </div>
-            <div className="hero-visual">
-              <div className="hero-candy">
-                <Candy size={120} color="var(--primary-orange)" />
-              </div>
-              <div className="floating-icons">
-                <Heart size={24} className="float-1" />
-                <Gift size={28} className="float-2" />
-                <Star size={20} className="float-3" />
+            <div className="lg:w-1/2 flex justify-center relative">
+              <div className="relative">
+                <div className="bg-white rounded-full p-8 shadow-2xl">
+                  <Candy size={120} className="text-orange-500" />
+                </div>
+                <div className="absolute -top-4 -right-4 text-red-500 animate-pulse">
+                  <Heart size={24} />
+                </div>
+                <div className="absolute -bottom-4 -left-4 text-purple-500 animate-bounce">
+                  <Gift size={28} />
+                </div>
+                <div className="absolute top-8 -left-8 text-yellow-500 animate-spin">
+                  <Star size={20} />
+                </div>
               </div>
             </div>
           </div>
@@ -144,42 +159,46 @@ const Home = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="stats-section">
-        <div className="container">
-          <h2 className="section-title">
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
             {isAdmin ? "Shop Overview" : "Your Sweet Journey"}
           </h2>
-          <div className="stats-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {isAdmin ? (
               <>
-                <StatCard
-                  icon={Package}
-                  title="Total Products"
-                  value={stats.totalSweets}
-                  color="var(--primary-orange)"
-                  description="Available sweet varieties"
-                />
-                <StatCard
-                  icon={Users}
-                  title="Total Customers"
-                  value={stats.totalUsers}
-                  color="var(--success)"
-                  description="Registered users"
-                />
-                <StatCard
-                  icon={TrendingUp}
-                  title="Recent Sales"
-                  value={stats.recentPurchases}
-                  color="var(--warning)"
-                  description="Orders this week"
-                />
-                <StatCard
-                  icon={Package}
-                  title="Low Stock Items"
-                  value={stats.lowStockCount}
-                  color={stats.lowStockCount > 5 ? "var(--error)" : "var(--gray)"}
-                  description="Items need restocking"
-                />
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 text-center shadow-lg">
+                  <div className="flex justify-center mb-4">
+                    <Package className="h-8 w-8 text-orange-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{stats.totalSweets}</h3>
+                  <p className="text-orange-600 font-medium">Total Products</p>
+                  <p className="text-sm text-gray-600 mt-1">Available sweet varieties</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center shadow-lg">
+                  <div className="flex justify-center mb-4">
+                    <Users className="h-8 w-8 text-green-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{stats.totalUsers}</h3>
+                  <p className="text-green-600 font-medium">Total Customers</p>
+                  <p className="text-sm text-gray-600 mt-1">Registered users</p>
+                </div>
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 text-center shadow-lg">
+                  <div className="flex justify-center mb-4">
+                    <TrendingUp className="h-8 w-8 text-yellow-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{stats.recentPurchases}</h3>
+                  <p className="text-yellow-600 font-medium">Recent Sales</p>
+                  <p className="text-sm text-gray-600 mt-1">Orders this week</p>
+                </div>
+                <div className={`bg-gradient-to-br rounded-xl p-6 text-center shadow-lg ${stats.lowStockCount > 5 ? 'from-red-50 to-red-100' : 'from-gray-50 to-gray-100'}`}>
+                  <div className="flex justify-center mb-4">
+                    <Package className={`h-8 w-8 ${stats.lowStockCount > 5 ? 'text-red-500' : 'text-gray-500'}`} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{stats.lowStockCount}</h3>
+                  <p className={`font-medium ${stats.lowStockCount > 5 ? 'text-red-600' : 'text-gray-600'}`}>Low Stock Items</p>
+                  <p className="text-sm text-gray-600 mt-1">Items need restocking</p>
+                </div>
               </>
             ) : (
               <>

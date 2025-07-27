@@ -70,13 +70,23 @@ export function AdminDashboard() {
 
     const fetchSweets = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/sweets`);
+            const response = await fetch(`${API_BASE_URL}/sweets`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
-                setSweets(data);
+                console.log('Fetched sweets:', data);
+                setSweets(Array.isArray(data) ? data : []);
+            } else {
+                console.error('Failed to fetch sweets:', response.status);
+                setSweets([]);
             }
         } catch (error) {
             console.error('Error fetching sweets:', error);
+            setSweets([]);
         }
     };
 
@@ -228,14 +238,14 @@ export function AdminDashboard() {
     };
 
     // Filter sweets based on search and category
-    const filteredSweets = sweets.filter(sweet => {
-        const matchesSearch = sweet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            sweet.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredSweets = Array.isArray(sweets) ? sweets.filter(sweet => {
+        const matchesSearch = sweet.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sweet.category?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || sweet.category === categoryFilter;
         return matchesSearch && matchesCategory;
-    });
+    }) : [];
 
-    const categories = [...new Set(sweets.map(sweet => sweet.category))];
+    const categories = Array.isArray(sweets) ? [...new Set(sweets.map(sweet => sweet.category).filter(Boolean))] : [];
 
     if (isLoading) {
         return (
