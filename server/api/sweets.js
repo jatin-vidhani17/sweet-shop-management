@@ -2,6 +2,14 @@ const { createSupabaseClient } = require('../supabase/client');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 module.exports = async (req, res) => {
+  // Handle CORS for Vercel deployment
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).end();
+  }
+
   const supabase = createSupabaseClient();
 
   try {

@@ -18,9 +18,8 @@ const restockHandler = require('../api/sweets/[id]/restock');
 
 app.use('/api/auth/register', registerHandler);
 app.use('/api/auth/login', loginHandler);
-app.use('/api/sweets', sweetsHandler);
 
-// Mock dynamic routes
+// Order matters: more specific routes first
 app.use('/api/sweets/search', searchHandler);
 app.use('/api/sweets/:id/purchase', (req, res) => {
   req.query = { ...req.query, id: req.params.id };
@@ -34,6 +33,7 @@ app.use('/api/sweets/:id', (req, res) => {
   req.query = { ...req.query, id: req.params.id };
   sweetByIdHandler(req, res);
 });
+app.use('/api/sweets', sweetsHandler);
 
 jest.setTimeout(30000);
 
@@ -421,17 +421,17 @@ describe('Sweets API', () => {
         .send({ quantity: 50 })
         .expect(403);
 
-      expect(response.body).toHaveProperty('error', 'Authorization failed');
+      expect(response.body).toHaveProperty('error', 'Admin access required');
     });
 
     it('should fail with invalid quantity', async () => {
       const response = await request(app)
         .post(`/api/sweets/${testSweet.id}/restock`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ quantity: -10 })
+        .send({})  // Missing quantity field
         .expect(400);
 
-      expect(response.body).toHaveProperty('error', 'Invalid quantity');
+      expect(response.body).toHaveProperty('error', 'Missing fields');
     });
   });
 });

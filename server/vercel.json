@@ -8,11 +8,60 @@
   ],
   "routes": [
     {
+      "src": "/api/auth/register",
+      "dest": "/api/auth/register.js"
+    },
+    {
+      "src": "/api/auth/login", 
+      "dest": "/api/auth/login.js"
+    },
+    {
+      "src": "/api/sweets/search",
+      "dest": "/api/sweets/search.js"
+    },
+    {
+      "src": "/api/sweets/([^/]+)/purchase",
+      "dest": "/api/sweets/[id]/purchase.js?id=$1"
+    },
+    {
+      "src": "/api/sweets/([^/]+)/restock",
+      "dest": "/api/sweets/[id]/restock.js?id=$1"
+    },
+    {
+      "src": "/api/sweets/([^/]+)",
+      "dest": "/api/sweets/[id].js?id=$1"
+    },
+    {
+      "src": "/api/sweets",
+      "dest": "/api/sweets.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods", 
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
 }
