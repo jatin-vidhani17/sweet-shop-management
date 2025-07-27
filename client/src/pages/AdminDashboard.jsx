@@ -1,1059 +1,824 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useDropzone } from 'react-dropzone';
+import { Dialog } from '@headlessui/react';
 import { 
-  Plus, 
-  Edit3, 
-  Trash2, 
-  Package, 
-  DollarSign,
-  TrendingUp,
-  Users,
-  Search,
-  Filter,
-  MoreHorizontal,
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Candy,
-  Settings
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell
+} from 'recharts';
+import {
+  Package, Plus, Edit, Trash2, TrendingUp, Users, ShoppingCart,
+  DollarSign, AlertTriangle, Upload, X, Save, Eye, BarChart3,
+  Calendar, Filter, Search, RefreshCw, Image as ImageIcon
 } from 'lucide-react';
-import axios from 'axios';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays } from 'date-fns';
 
-const AdminDashboard = () => {
-  const { user } = useAuth();
-  const [sweets, setSweets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedSweet, setSelectedSweet] = useState(null);
-  const [actionLoading, setActionLoading] = useState({});
-  const [stats, setStats] = useState({
-    totalSweets: 0,
-    totalValue: 0,
-    lowStockCount: 0,
-    outOfStockCount: 0
-  });
-
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    price: '',
-    quantity: '',
-    description: ''
-  });
-
-  const categories = ['Chocolate', 'Candy', 'Gummy', 'Hard Candy', 'Lollipop', 'Caramel'];
-
-  useEffect(() => {
-    fetchSweets();
-  }, []);
-
-  useEffect(() => {
-    calculateStats();
-  }, [sweets]);
-
-  const fetchSweets = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/sweets');
-      const sweetsData = response.data.sweets || [];
-      setSweets(sweetsData);
-    } catch (error) {
-      console.error('Error fetching sweets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const calculateStats = () => {
-    const totalSweets = sweets.length;
-    const totalValue = sweets.reduce((sum, sweet) => sum + (sweet.price * sweet.quantity), 0);
-    const lowStockCount = sweets.filter(sweet => sweet.quantity > 0 && sweet.quantity < 10).length;
-    const outOfStockCount = sweets.filter(sweet => sweet.quantity === 0).length;
-
-    setStats({
-      totalSweets,
-      totalValue,
-      lowStockCount,
-      outOfStockCount
+export function AdminDashboard() {
+    const { user } = useAuth();
+    const [sweets, setSweets] = useState([]);
+    const [salesData, setSalesData] = useState([]);
+    const [analytics, setAnalytics] = useState({
+        totalRevenue: 0,
+        totalSales: 0,
+        totalCustomers: 0,
+        lowStockItems: 0
     });
-  };
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingSweet, setEditingSweet] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [viewMode, setViewMode] = useState('grid'); // grid or list
+    const [activeTab, setActiveTab] = useState('inventory'); // inventory, analytics
 
-  const filteredSweets = sweets.filter(sweet => {
-    const matchesSearch = sweet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         sweet.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || sweet.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      category: '',
-      price: '',
-      quantity: '',
-      description: ''
+    // Form state for add/edit
+    const [formData, setFormData] = useState({
+        name: '',
+        category: '',
+        price: '',
+        quantity: '',
+        description: '',
+        ingredients: '',
+        image: null
     });
-  };
 
-  const handleAddSweet = async (e) => {
-    e.preventDefault();
-    try {
-      setActionLoading(prev => ({ ...prev, add: true }));
-      
-      const response = await axios.post('/sweets', {
-        ...formData,
-        price: parseFloat(formData.price),
-        quantity: parseInt(formData.quantity)
-      });
+    const API_BASE_URL = 'https://sweet-shop-management-psi.vercel.app/api';
 
-      setSweets(prev => [...prev, response.data.sweet]);
-      setShowAddModal(false);
-      resetForm();
-      alert('Sweet added successfully!');
-    } catch (error) {
-      console.error('Error adding sweet:', error);
-      alert(error.response?.data?.message || 'Failed to add sweet');
-    } finally {
-      setActionLoading(prev => ({ ...prev, add: false }));
-    }
-  };
+    // Colors for charts
+    const COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'];
 
-  const handleEditSweet = async (e) => {
-    e.preventDefault();
-    try {
-      setActionLoading(prev => ({ ...prev, edit: true }));
-      
-      const response = await axios.put(`/sweets/${selectedSweet.id}`, {
-        ...formData,
-        price: parseFloat(formData.price),
-        quantity: parseInt(formData.quantity)
-      });
+    useEffect(() => {
+        fetchData();
+    }, []);
 
-      setSweets(prev => prev.map(sweet => 
-        sweet.id === selectedSweet.id ? response.data.sweet : sweet
-      ));
-      setShowEditModal(false);
-      setSelectedSweet(null);
-      resetForm();
-      alert('Sweet updated successfully!');
-    } catch (error) {
-      console.error('Error updating sweet:', error);
-      alert(error.response?.data?.message || 'Failed to update sweet');
-    } finally {
-      setActionLoading(prev => ({ ...prev, edit: false }));
-    }
-  };
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            await Promise.all([
+                fetchSweets(),
+                fetchAnalytics(),
+                fetchSalesData()
+            ]);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  const handleDeleteSweet = async (sweetId) => {
-    if (!confirm('Are you sure you want to delete this sweet?')) return;
+    const fetchSweets = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/sweets`);
+            if (response.ok) {
+                const data = await response.json();
+                setSweets(data);
+            }
+        } catch (error) {
+            console.error('Error fetching sweets:', error);
+        }
+    };
 
-    try {
-      setActionLoading(prev => ({ ...prev, [sweetId]: true }));
-      
-      await axios.delete(`/sweets/${sweetId}`);
-      setSweets(prev => prev.filter(sweet => sweet.id !== sweetId));
-      alert('Sweet deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting sweet:', error);
-      alert(error.response?.data?.message || 'Failed to delete sweet');
-    } finally {
-      setActionLoading(prev => ({ ...prev, [sweetId]: false }));
-    }
-  };
+    const fetchAnalytics = async () => {
+        try {
+            // Mock analytics data - replace with actual API calls
+            setAnalytics({
+                totalRevenue: 15420.50,
+                totalSales: 1250,
+                totalCustomers: 320,
+                lowStockItems: sweets.filter(sweet => sweet.quantity < 10).length
+            });
+        } catch (error) {
+            console.error('Error fetching analytics:', error);
+        }
+    };
 
-  const handleRestock = async (sweetId, additionalQuantity) => {
-    try {
-      setActionLoading(prev => ({ ...prev, [`restock_${sweetId}`]: true }));
-      
-      const response = await axios.post(`/sweets/${sweetId}/restock`, {
-        quantity: parseInt(additionalQuantity)
-      });
+    const fetchSalesData = async () => {
+        try {
+            // Mock sales data for charts
+            const weekStart = startOfWeek(new Date());
+            const weekEnd = endOfWeek(new Date());
+            const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-      setSweets(prev => prev.map(sweet => 
-        sweet.id === sweetId ? response.data.sweet : sweet
-      ));
-      alert('Sweet restocked successfully!');
-    } catch (error) {
-      console.error('Error restocking sweet:', error);
-      alert(error.response?.data?.message || 'Failed to restock sweet');
-    } finally {
-      setActionLoading(prev => ({ ...prev, [`restock_${sweetId}`]: false }));
-    }
-  };
+            const weeklyData = daysInWeek.map(day => ({
+                date: format(day, 'MMM dd'),
+                sales: Math.floor(Math.random() * 1000) + 200,
+                revenue: Math.floor(Math.random() * 5000) + 1000
+            }));
 
-  const openEditModal = (sweet) => {
-    setSelectedSweet(sweet);
-    setFormData({
-      name: sweet.name,
-      category: sweet.category,
-      price: sweet.price.toString(),
-      quantity: sweet.quantity.toString(),
-      description: sweet.description || ''
+            setSalesData(weeklyData);
+        } catch (error) {
+            console.error('Error fetching sales data:', error);
+        }
+    };
+
+    // Image upload handler
+    const onDrop = useCallback((acceptedFiles) => {
+        const file = acceptedFiles[0];
+        if (file) {
+            setFormData(prev => ({ ...prev, image: file }));
+        }
+    }, []);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: {
+            'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+        },
+        multiple: false,
+        maxSize: 5 * 1024 * 1024 // 5MB
     });
-    setShowEditModal(true);
-  };
 
-  const StatCard = ({ icon: Icon, title, value, color, trend }) => (
-    <div className="stat-card">
-      <div className="stat-header">
-        <div className="stat-icon" style={{ backgroundColor: color }}>
-          <Icon size={24} color="white" />
-        </div>
-        <div className="stat-trend">
-          {trend && <TrendingUp size={16} color={color} />}
-        </div>
-      </div>
-      <div className="stat-content">
-        <h3 className="stat-value">{value}</h3>
-        <p className="stat-title">{title}</p>
-      </div>
-    </div>
-  );
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
-  const Modal = ({ show, onClose, title, children }) => {
-    if (!show) return null;
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const sweetData = {
+                name: formData.name,
+                category: formData.category,
+                price: parseFloat(formData.price),
+                quantity: parseInt(formData.quantity),
+                description: formData.description,
+                ingredients: formData.ingredients.split(',').map(i => i.trim()),
+                image_url: formData.image ? URL.createObjectURL(formData.image) : null
+            };
 
-    return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" onClick={e => e.stopPropagation()}>
-          <div className="modal-header">
-            <h3>{title}</h3>
-            <button onClick={onClose} className="modal-close">&times;</button>
-          </div>
-          <div className="modal-body">
-            {children}
-          </div>
-        </div>
-      </div>
-    );
-  };
+            const method = editingSweet ? 'PUT' : 'POST';
+            const url = editingSweet
+                ? `${API_BASE_URL}/sweets/${editingSweet.id}`
+                : `${API_BASE_URL}/sweets`;
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading admin dashboard...</p>
-      </div>
-    );
-  }
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sweetData)
+            });
 
-  return (
-    <div className="admin-container">
-      <div className="container">
-        {/* Header */}
-        <div className="admin-header">
-          <div>
-            <h1 className="page-title">Admin Dashboard</h1>
-            <p className="page-subtitle">
-              Welcome back, {user?.name}! Manage your sweet shop inventory.
-            </p>
-          </div>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus size={20} />
-            Add New Sweet
-          </button>
-        </div>
+            if (response.ok) {
+                fetchSweets();
+                resetForm();
+                setIsAddModalOpen(false);
+                setIsEditModalOpen(false);
+            }
+        } catch (error) {
+            console.error('Error saving sweet:', error);
+        }
+    };
 
-        {/* Stats Cards */}
-        <div className="stats-grid">
-          <StatCard
-            icon={Package}
-            title="Total Products"
-            value={stats.totalSweets}
-            color="var(--primary-orange)"
-            trend={true}
-          />
-          <StatCard
-            icon={DollarSign}
-            title="Total Inventory Value"
-            value={`$${stats.totalValue.toFixed(2)}`}
-            color="var(--success)"
-            trend={true}
-          />
-          <StatCard
-            icon={AlertTriangle}
-            title="Low Stock Items"
-            value={stats.lowStockCount}
-            color="var(--warning)"
-          />
-          <StatCard
-            icon={Package}
-            title="Out of Stock"
-            value={stats.outOfStockCount}
-            color="var(--error)"
-          />
-        </div>
+    const resetForm = () => {
+        setFormData({
+            name: '',
+            category: '',
+            price: '',
+            quantity: '',
+            description: '',
+            ingredients: '',
+            image: null
+        });
+        setEditingSweet(null);
+    };
 
-        {/* Filters and Search */}
-        <div className="controls-section">
-          <div className="search-controls">
-            <div className="search-bar">
-              <Search size={20} />
-              <input
-                type="text"
-                placeholder="Search sweets..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
+    const handleEdit = (sweet) => {
+        setEditingSweet(sweet);
+        setFormData({
+            name: sweet.name,
+            category: sweet.category,
+            price: sweet.price.toString(),
+            quantity: sweet.quantity.toString(),
+            description: sweet.description || '',
+            ingredients: sweet.ingredients ? sweet.ingredients.join(', ') : '',
+            image: null
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this sweet?')) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/sweets/${id}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    fetchSweets();
+                }
+            } catch (error) {
+                console.error('Error deleting sweet:', error);
+            }
+        }
+    };
+
+    const handleRestock = async (id, quantity) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/sweets/${id}/restock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quantity: parseInt(quantity) })
+            });
+            if (response.ok) {
+                fetchSweets();
+            }
+        } catch (error) {
+            console.error('Error restocking sweet:', error);
+        }
+    };
+
+    // Filter sweets based on search and category
+    const filteredSweets = sweets.filter(sweet => {
+        const matchesSearch = sweet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sweet.category.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = categoryFilter === 'all' || sweet.category === categoryFilter;
+        return matchesSearch && matchesCategory;
+    });
+
+    const categories = [...new Set(sweets.map(sweet => sweet.category))];
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="flex items-center space-x-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                    <span className="text-gray-600">Loading dashboard...</span>
+                </div>
             </div>
-            
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="category-filter"
-            >
-              <option value="">All Categories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-          
-          <button 
-            onClick={fetchSweets}
-            className="btn btn-secondary"
-            disabled={loading}
-          >
-            <RefreshCw size={18} />
-            Refresh
-          </button>
-        </div>
+        );
+    }
 
-        {/* Sweets Table */}
-        <div className="table-container">
-          <div className="table-header">
-            <h3>Sweet Inventory ({filteredSweets.length} items)</h3>
-          </div>
-          
-          <div className="table-wrapper">
-            <table className="sweets-table">
-              <thead>
-                <tr>
-                  <th>Sweet</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSweets.map(sweet => (
-                  <tr key={sweet.id}>
-                    <td>
-                      <div className="sweet-info">
-                        <div className="sweet-icon">
-                          <Candy size={20} color="var(--primary-orange)" />
-                        </div>
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-white shadow-sm border-b">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center py-6">
                         <div>
-                          <div className="sweet-name">{sweet.name}</div>
-                          <div className="sweet-description">
-                            {sweet.description || 'No description'}
-                          </div>
+                            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                            <p className="text-gray-600">Welcome back, {user?.name}</p>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="category-badge">{sweet.category}</span>
-                    </td>
-                    <td className="price">${sweet.price}</td>
-                    <td>
-                      <div className="stock-info">
-                        <span className="stock-quantity">{sweet.quantity}</span>
-                        {sweet.quantity < 10 && sweet.quantity > 0 && (
-                          <button
-                            className="restock-btn"
-                            onClick={() => {
-                              const quantity = prompt('Enter quantity to add:', '10');
-                              if (quantity) handleRestock(sweet.id, quantity);
-                            }}
-                            disabled={actionLoading[`restock_${sweet.id}`]}
-                          >
-                            {actionLoading[`restock_${sweet.id}`] ? (
-                              <RefreshCw size={12} className="spinning" />
-                            ) : (
-                              'Restock'
-                            )}
-                          </button>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => setActiveTab('inventory')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'inventory'
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : 'text-gray-600 hover:text-gray-900'}`}
+                            >
+                                <Package className="h-4 w-4 inline mr-2" />
+                                Inventory
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('analytics')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'analytics'
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : 'text-gray-600 hover:text-gray-900'}`}
+                            >
+                                <BarChart3 className="h-4 w-4 inline mr-2" />
+                                Analytics
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Analytics Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 bg-green-100 rounded-lg">
+                                <DollarSign className="h-6 w-6 text-green-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                                <p className="text-2xl font-bold text-gray-900">${analytics.totalRevenue.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 bg-blue-100 rounded-lg">
+                                <ShoppingCart className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Total Sales</p>
+                                <p className="text-2xl font-bold text-gray-900">{analytics.totalSales.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 bg-purple-100 rounded-lg">
+                                <Users className="h-6 w-6 text-purple-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                                <p className="text-2xl font-bold text-gray-900">{analytics.totalCustomers.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 bg-red-100 rounded-lg">
+                                <AlertTriangle className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Low Stock</p>
+                                <p className="text-2xl font-bold text-gray-900">{analytics.lowStockItems}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content based on active tab */}
+                {activeTab === 'analytics' ? (
+                    <div className="space-y-8">
+                        {/* Charts Row */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Daily Sales Chart */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Sales</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={salesData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Line type="monotone" dataKey="sales" stroke="#f97316" strokeWidth={2} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Revenue Chart */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Revenue</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={salesData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey="revenue" fill="#f97316" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Category Distribution */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Inventory by Category</h3>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <PieChart>
+                                    <Pie
+                                        data={categories.map((category, index) => ({
+                                            name: category,
+                                            value: sweets.filter(s => s.category === category).length,
+                                            color: COLORS[index % COLORS.length]
+                                        }))}
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={150}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        label={({ name, value }) => `${name}: ${value}`}
+                                    >
+                                        {categories.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {/* Inventory Controls */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                                <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                                    {/* Search */}
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search sweets..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                                    </div>
+
+                                    {/* Category Filter */}
+                                    <select
+                                        value={categoryFilter}
+                                        onChange={(e) => setCategoryFilter(e.target.value)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                    >
+                                        <option value="all">All Categories</option>
+                                        {categories.map(category => (
+                                            <option key={category} value={category}>
+                                                {category.charAt(0).toUpperCase() + category.slice(1)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex space-x-3">
+                                    <button
+                                        onClick={fetchData}
+                                        className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Refresh
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            resetForm();
+                                            setIsAddModalOpen(true);
+                                        } }
+                                        className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add Sweet
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Inventory Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {filteredSweets.map((sweet) => (
+                                <div key={sweet.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                                    {/* Image */}
+                                    <div className="h-48 bg-gray-200 flex items-center justify-center">
+                                        {sweet.image_url ? (
+                                            <img
+                                                src={sweet.image_url}
+                                                alt={sweet.name}
+                                                className="w-full h-full object-cover" />
+                                        ) : (
+                                            <ImageIcon className="h-12 w-12 text-gray-400" />
+                                        )}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="p-4">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold text-gray-900 truncate">{sweet.name}</h3>
+                                                <p className="text-sm text-gray-600 capitalize">{sweet.category}</p>
+                                                <p className="text-lg font-bold text-orange-600">${sweet.price}</p>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${sweet.quantity < 10
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : sweet.quantity < 20
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : 'bg-green-100 text-green-800'}`}>
+                                                {sweet.quantity} left
+                                            </span>
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div className="mt-4 flex space-x-2">
+                                            <button
+                                                onClick={() => handleEdit(sweet)}
+                                                className="flex-1 flex items-center justify-center px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                                            >
+                                                <Edit className="h-4 w-4 mr-1" />
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const quantity = prompt('Enter restock quantity:');
+                                                    if (quantity && !isNaN(quantity)) {
+                                                        handleRestock(sweet.id, quantity);
+                                                    }
+                                                } }
+                                                className="flex-1 flex items-center justify-center px-3 py-2 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
+                                            >
+                                                <Package className="h-4 w-4 mr-1" />
+                                                Restock
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(sweet.id)}
+                                                className="flex items-center justify-center px-3 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {filteredSweets.length === 0 && (
+                            <div className="text-center py-12">
+                                <Package className="mx-auto h-12 w-12 text-gray-400" />
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No sweets found</h3>
+                                <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+                            </div>
                         )}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${
-                        sweet.quantity === 0 ? 'out-of-stock' :
-                        sweet.quantity < 10 ? 'low-stock' : 'in-stock'
-                      }`}>
-                        {sweet.quantity === 0 ? 'Out of Stock' :
-                         sweet.quantity < 10 ? 'Low Stock' : 'In Stock'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="action-btn edit"
-                          onClick={() => openEditModal(sweet)}
-                          title="Edit"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        <button
-                          className="action-btn delete"
-                          onClick={() => handleDeleteSweet(sweet.id)}
-                          disabled={actionLoading[sweet.id]}
-                          title="Delete"
-                        >
-                          {actionLoading[sweet.id] ? (
-                            <RefreshCw size={16} className="spinning" />
-                          ) : (
-                            <Trash2 size={16} />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {filteredSweets.length === 0 && (
-            <div className="no-results">
-              <Candy size={64} color="var(--gray)" />
-              <h3>No sweets found</h3>
-              <p>Try adjusting your search or add new sweets to your inventory</p>
+                    </div>
+                )}
             </div>
-          )}
+
+            {/* Add Sweet Modal */}
+            <Dialog open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} className="relative z-50">
+                <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+                <div className="fixed inset-0 flex items-center justify-center p-4">
+                    <Dialog.Panel className="w-full max-w-md bg-white rounded-xl shadow-lg">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <Dialog.Title className="text-lg font-semibold">Add New Sweet</Dialog.Title>
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            {/* Image Upload */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
+                                <div
+                                    {...getRootProps()}
+                                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive ? 'border-orange-400 bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}
+                                >
+                                    <input {...getInputProps()} />
+                                    {formData.image ? (
+                                        <div className="space-y-2">
+                                            <img
+                                                src={URL.createObjectURL(formData.image)}
+                                                alt="Preview"
+                                                className="mx-auto h-20 w-20 object-cover rounded" />
+                                            <p className="text-sm text-gray-600">{formData.image.name}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                                            <p className="text-sm text-gray-600">
+                                                {isDragActive ? 'Drop the image here' : 'Drag & drop an image, or click to select'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Form Fields */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <select
+                                        name="category"
+                                        value={formData.category}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required
+                                    >
+                                        <option value="">Select category</option>
+                                        <option value="chocolate">Chocolate</option>
+                                        <option value="candy">Candy</option>
+                                        <option value="gummy">Gummy</option>
+                                        <option value="dessert">Dessert</option>
+                                        <option value="hard-candy">Hard Candy</option>
+                                        <option value="lollipop">Lollipop</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                                    <input
+                                        type="number"
+                                        name="price"
+                                        value={formData.price}
+                                        onChange={handleInputChange}
+                                        step="0.01"
+                                        min="0"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={formData.quantity}
+                                        onChange={handleInputChange}
+                                        min="0"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleInputChange}
+                                    rows="3"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ingredients (comma-separated)</label>
+                                <input
+                                    type="text"
+                                    name="ingredients"
+                                    value={formData.ingredients}
+                                    onChange={handleInputChange}
+                                    placeholder="sugar, chocolate, milk..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                            </div>
+
+                            <div className="flex space-x-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                >
+                                    <Save className="h-4 w-4 inline mr-2" />
+                                    Add Sweet
+                                </button>
+                            </div>
+                        </form>
+                    </Dialog.Panel>
+                </div>
+            </Dialog>
+
+            {/* Edit Sweet Modal */}
+            <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="relative z-50">
+                <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+                <div className="fixed inset-0 flex items-center justify-center p-4">
+                    <Dialog.Panel className="w-full max-w-md bg-white rounded-xl shadow-lg">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <Dialog.Title className="text-lg font-semibold">Edit Sweet</Dialog.Title>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            {/* Same form fields as Add Modal */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
+                                <div
+                                    {...getRootProps()}
+                                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive ? 'border-orange-400 bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}
+                                >
+                                    <input {...getInputProps()} />
+                                    {formData.image ? (
+                                        <div className="space-y-2">
+                                            <img
+                                                src={URL.createObjectURL(formData.image)}
+                                                alt="Preview"
+                                                className="mx-auto h-20 w-20 object-cover rounded" />
+                                            <p className="text-sm text-gray-600">{formData.image.name}</p>
+                                        </div>
+                                    ) : editingSweet?.image_url ? (
+                                        <div className="space-y-2">
+                                            <img
+                                                src={editingSweet.image_url}
+                                                alt="Current"
+                                                className="mx-auto h-20 w-20 object-cover rounded" />
+                                            <p className="text-sm text-gray-600">Current image</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                                            <p className="text-sm text-gray-600">
+                                                {isDragActive ? 'Drop the image here' : 'Drag & drop an image, or click to select'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <select
+                                        name="category"
+                                        value={formData.category}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required
+                                    >
+                                        <option value="">Select category</option>
+                                        <option value="chocolate">Chocolate</option>
+                                        <option value="candy">Candy</option>
+                                        <option value="gummy">Gummy</option>
+                                        <option value="dessert">Dessert</option>
+                                        <option value="hard-candy">Hard Candy</option>
+                                        <option value="lollipop">Lollipop</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                                    <input
+                                        type="number"
+                                        name="price"
+                                        value={formData.price}
+                                        onChange={handleInputChange}
+                                        step="0.01"
+                                        min="0"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={formData.quantity}
+                                        onChange={handleInputChange}
+                                        min="0"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        required />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleInputChange}
+                                    rows="3"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ingredients (comma-separated)</label>
+                                <input
+                                    type="text"
+                                    name="ingredients"
+                                    value={formData.ingredients}
+                                    onChange={handleInputChange}
+                                    placeholder="sugar, chocolate, milk..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                            </div>
+
+                            <div className="flex space-x-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                >
+                                    <Save className="h-4 w-4 inline mr-2" />
+                                    Update Sweet
+                                </button>
+                            </div>
+                        </form>
+                    </Dialog.Panel>
+                </div>
+            </Dialog>
         </div>
-      </div>
+    );
+}
 
-      {/* Add Modal */}
-      <Modal 
-        show={showAddModal} 
-        onClose={() => setShowAddModal(false)}
-        title="Add New Sweet"
-      >
-        <form onSubmit={handleAddSweet} className="sweet-form">
-          <div className="form-group">
-            <label>Sweet Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleFormChange}
-              className="form-input"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Category</label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleFormChange}
-              className="form-select"
-              required
-            >
-              <option value="">Select Category</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label>Price ($)</label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleFormChange}
-                className="form-input"
-                step="0.01"
-                min="0"
-                required
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Quantity</label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleFormChange}
-                className="form-input"
-                min="0"
-                required
-              />
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label>Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleFormChange}
-              className="form-textarea"
-              placeholder="Optional description..."
-            />
-          </div>
-          
-          <div className="form-actions">
-            <button 
-              type="button" 
-              onClick={() => setShowAddModal(false)}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              disabled={actionLoading.add}
-            >
-              {actionLoading.add ? 'Adding...' : 'Add Sweet'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Edit Modal */}
-      <Modal 
-        show={showEditModal} 
-        onClose={() => setShowEditModal(false)}
-        title="Edit Sweet"
-      >
-        <form onSubmit={handleEditSweet} className="sweet-form">
-          <div className="form-group">
-            <label>Sweet Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleFormChange}
-              className="form-input"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Category</label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleFormChange}
-              className="form-select"
-              required
-            >
-              <option value="">Select Category</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label>Price ($)</label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleFormChange}
-                className="form-input"
-                step="0.01"
-                min="0"
-                required
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Quantity</label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleFormChange}
-                className="form-input"
-                min="0"
-                required
-              />
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label>Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleFormChange}
-              className="form-textarea"
-              placeholder="Optional description..."
-            />
-          </div>
-          
-          <div className="form-actions">
-            <button 
-              type="button" 
-              onClick={() => setShowEditModal(false)}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              disabled={actionLoading.edit}
-            >
-              {actionLoading.edit ? 'Updating...' : 'Update Sweet'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      <style jsx>{`
-        .admin-container {
-          min-height: calc(100vh - 70px);
-          padding: 2rem 0;
-          animation: fadeIn 0.6s ease-out;
-        }
-
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 50vh;
-          gap: 1rem;
-        }
-
-        .admin-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: start;
-          margin-bottom: 3rem;
-        }
-
-        .page-title {
-          font-size: 3rem;
-          font-weight: 800;
-          color: var(--orange-text);
-          margin-bottom: 0.5rem;
-        }
-
-        .page-subtitle {
-          font-size: 1.25rem;
-          color: var(--gray);
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 2rem;
-          margin-bottom: 3rem;
-        }
-
-        .stat-card {
-          background: white;
-          padding: 2rem;
-          border-radius: var(--border-radius);
-          box-shadow: var(--shadow);
-          transition: var(--transition);
-        }
-
-        .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: var(--shadow-hover);
-        }
-
-        .stat-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1rem;
-        }
-
-        .stat-icon {
-          width: 50px;
-          height: 50px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: var(--orange-text);
-          margin-bottom: 0.25rem;
-        }
-
-        .stat-title {
-          color: var(--gray);
-          font-weight: 500;
-        }
-
-        .controls-section {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-          gap: 1rem;
-        }
-
-        .search-controls {
-          display: flex;
-          gap: 1rem;
-          flex: 1;
-        }
-
-        .search-bar {
-          position: relative;
-          flex: 1;
-          max-width: 400px;
-        }
-
-        .search-bar svg {
-          position: absolute;
-          left: 1rem;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--gray);
-        }
-
-        .search-input {
-          width: 100%;
-          padding: 12px 16px 12px 3rem;
-          border: 2px solid #e0e0e0;
-          border-radius: var(--border-radius);
-          font-size: 1rem;
-        }
-
-        .category-filter {
-          padding: 12px 16px;
-          border: 2px solid #e0e0e0;
-          border-radius: var(--border-radius);
-          background: white;
-        }
-
-        .table-container {
-          background: white;
-          border-radius: var(--border-radius);
-          box-shadow: var(--shadow);
-          overflow: hidden;
-        }
-
-        .table-header {
-          padding: 1.5rem;
-          border-bottom: 1px solid #e0e0e0;
-        }
-
-        .table-header h3 {
-          color: var(--orange-text);
-          margin: 0;
-        }
-
-        .table-wrapper {
-          overflow-x: auto;
-        }
-
-        .sweets-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .sweets-table th {
-          background: var(--light-gray);
-          padding: 1rem;
-          text-align: left;
-          font-weight: 600;
-          color: var(--orange-text);
-          border-bottom: 2px solid #e0e0e0;
-        }
-
-        .sweets-table td {
-          padding: 1rem;
-          border-bottom: 1px solid #e0e0e0;
-          vertical-align: middle;
-        }
-
-        .sweet-info {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .sweet-icon {
-          width: 40px;
-          height: 40px;
-          background: var(--orange-light);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .sweet-name {
-          font-weight: 600;
-          color: var(--black);
-        }
-
-        .sweet-description {
-          font-size: 0.85rem;
-          color: var(--gray);
-        }
-
-        .category-badge {
-          background: var(--orange-light);
-          color: var(--orange-text);
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 500;
-        }
-
-        .price {
-          font-weight: 600;
-          color: var(--primary-orange);
-          font-size: 1.1rem;
-        }
-
-        .stock-info {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .stock-quantity {
-          font-weight: 600;
-        }
-
-        .restock-btn {
-          background: var(--warning);
-          color: white;
-          border: none;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-size: 0.75rem;
-          cursor: pointer;
-          transition: var(--transition);
-        }
-
-        .restock-btn:hover {
-          background: #f57c00;
-        }
-
-        .status-badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 500;
-        }
-
-        .status-badge.in-stock {
-          background: #e8f5e8;
-          color: var(--success);
-        }
-
-        .status-badge.low-stock {
-          background: #fff8e1;
-          color: var(--warning);
-        }
-
-        .status-badge.out-of-stock {
-          background: #ffebee;
-          color: var(--error);
-        }
-
-        .action-buttons {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .action-btn {
-          width: 32px;
-          height: 32px;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: var(--transition);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .action-btn.edit {
-          background: var(--orange-light);
-          color: var(--orange-text);
-        }
-
-        .action-btn.edit:hover {
-          background: var(--primary-orange);
-          color: white;
-        }
-
-        .action-btn.delete {
-          background: #ffebee;
-          color: var(--error);
-        }
-
-        .action-btn.delete:hover {
-          background: var(--error);
-          color: white;
-        }
-
-        .no-results {
-          text-align: center;
-          padding: 3rem;
-          color: var(--gray);
-        }
-
-        .no-results h3 {
-          color: var(--dark-gray);
-          margin: 1rem 0 0.5rem;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 1rem;
-        }
-
-        .modal-content {
-          background: white;
-          border-radius: var(--border-radius);
-          width: 100%;
-          max-width: 500px;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.5rem;
-          border-bottom: 1px solid #e0e0e0;
-        }
-
-        .modal-header h3 {
-          color: var(--orange-text);
-          margin: 0;
-        }
-
-        .modal-close {
-          background: none;
-          border: none;
-          font-size: 1.5rem;
-          cursor: pointer;
-          color: var(--gray);
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .modal-close:hover {
-          background: var(--light-gray);
-        }
-
-        .modal-body {
-          padding: 1.5rem;
-        }
-
-        .sweet-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 1rem;
-          justify-content: flex-end;
-          margin-top: 1rem;
-        }
-
-        .spinning {
-          animation: spin 1s linear infinite;
-        }
-
-        @media (max-width: 768px) {
-          .admin-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: stretch;
-          }
-
-          .page-title {
-            font-size: 2rem;
-          }
-
-          .controls-section {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .search-controls {
-            flex-direction: column;
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .sweets-table {
-            font-size: 0.9rem;
-          }
-
-          .form-row {
-            grid-template-columns: 1fr;
-          }
-
-          .form-actions {
-            flex-direction: column;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
-
-export default AdminDashboard;

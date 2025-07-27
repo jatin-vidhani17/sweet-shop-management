@@ -29,6 +29,7 @@ module.exports = async (req, res) => {
     });
 
     const { quantity = 1 } = req.body;
+    const customerId = req.user.id;
 
     // Validation
     if (typeof quantity !== 'number' || quantity <= 0 || !Number.isInteger(quantity)) {
@@ -90,6 +91,43 @@ module.exports = async (req, res) => {
     // Calculate total cost
     const totalCost = sweet.price * quantity;
 
+    // Record sale in sales table
+    const { data: saleRecord, error: saleError } = await supabase
+      .from('sales')
+      .insert([{
+        sweet_id: id,
+        customer_id: customerId,
+        quantity: quantity,
+        unit_price: sweet.price,
+        total_price: totalCost,
+        sale_date: new Date().toISOString().split('T')[0]
+      }])
+      .select()
+      .single();
+
+    if (saleError) {
+      console.error('Error recording sale:', saleError);
+      // Don't fail the purchase if sale recording fails, just log it
+    }
+
+    // Record stock history
+    const { error: stockHistoryError } = await supabase
+      .from('stock_history')
+      .insert([{
+        sweet_id: id,
+        admin_id: customerId, // In this case, customer making purchase
+        action_type: 'sale',
+        quantity_change: -quantity,
+        previous_quantity: sweet.quantity,
+        new_quantity: newQuantity,
+        notes: `Sale to customer: ${quantity} units purchased`
+      }]);
+
+    if (stockHistoryError) {
+      console.error('Error recording stock history:', stockHistoryError);
+      // Don't fail the purchase if stock history recording fails
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Purchase completed successfully',
@@ -99,7 +137,8 @@ module.exports = async (req, res) => {
         quantity_purchased: quantity,
         unit_price: sweet.price,
         total_cost: totalCost,
-        remaining_stock: newQuantity
+        remaining_stock: newQuantity,
+        sale_recorded: saleRecord ? true : false
       },
       updated_sweet: updatedSweet
     });

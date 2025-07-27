@@ -72,10 +72,14 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError('');
       
+      console.log('Attempting login with:', { email, baseURL: API_BASE_URL });
+      
       const response = await axios.post('/auth/login', {
         email,
         password
       });
+
+      console.log('Login response:', response.data);
 
       const { token, user: userData } = response.data;
       
@@ -86,10 +90,28 @@ export const AuthProvider = ({ children }) => {
       // Set axios default header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
+      console.log('Setting user in context:', userData);
       setUser(userData);
-      return { success: true };
+      
+      return { success: true, user: userData };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Login failed';
+      console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = 'Login failed - please try again';
+      
+      if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        errorMessage = 'Network error - please check your connection and try again';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || 'Invalid email or password';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error - please try again later';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -113,8 +135,10 @@ export const AuthProvider = ({ children }) => {
       // Set axios default header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
+      console.log('Setting user in context after registration:', newUser);
       setUser(newUser);
-      return { success: true };
+      
+      return { success: true, user: newUser };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Registration failed';
       setError(errorMessage);

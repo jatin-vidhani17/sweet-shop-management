@@ -6,8 +6,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Shopping from './pages/Shopping';
-import AdminDashboard from './pages/AdminDashboard';
-import './App.css';
+// import './index.css'; // Import global styles
+
+// import './App.css';
+import {AdminDashboard} from './pages/AdminDashboard';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole = null }) => {
@@ -86,7 +88,7 @@ function AppContent() {
           } />
           <Route path="/admin" element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboard />
+             < AdminDashboard />
             </ProtectedRoute>
           } />
           
