@@ -87,7 +87,10 @@ const Register = () => {
       const result = await register(registrationData);
       
       if (result && result.success) {
-        navigate('/', { replace: true });
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 100);
       }
     } catch (err) {
       console.error('Registration failed:', err);
