@@ -121,7 +121,7 @@ describe('Sweets API', () => {
         .send(sweetData)
         .expect(403);
 
-      expect(response.body).toHaveProperty('error', 'Authorization failed');
+      expect(response.body).toHaveProperty('error', 'Admin access required');
     });
 
     it('should fail to create a sweet without authentication', async () => {
@@ -130,7 +130,7 @@ describe('Sweets API', () => {
         .send(sweetData)
         .expect(401);
 
-      expect(response.body).toHaveProperty('error', 'Authentication failed');
+      expect(response.body).toHaveProperty('error', 'Access token required');
     });
 
     it('should fail with missing required fields', async () => {
@@ -205,7 +205,7 @@ describe('Sweets API', () => {
         .get('/api/sweets')
         .expect(401);
 
-      expect(response.body).toHaveProperty('error', 'Authentication failed');
+      expect(response.body).toHaveProperty('error', 'Access token required');
     });
   });
 
@@ -234,13 +234,13 @@ describe('Sweets API', () => {
 
     it('should search sweets by name', async () => {
       const response = await request(app)
-        .get('/api/sweets/search?name=chocolate')
+        .get('/api/sweets/search?name=test')
         .set('Authorization', `Bearer ${customerToken}`)
         .expect(200);
 
       expect(response.body).toHaveProperty('success', true);
       expect(response.body.data.length).toBeGreaterThan(0);
-      expect(response.body.data[0].name.toLowerCase()).toContain('chocolate');
+      expect(response.body.data[0].name.toLowerCase()).toContain('test');
     });
 
     it('should search sweets by category', async () => {

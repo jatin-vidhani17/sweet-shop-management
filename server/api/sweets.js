@@ -73,9 +73,7 @@ async function createSweet(req, res, supabase) {
       });
     });
 
-    const { name, category, price, quantity, description } = req.body;
-
-    // Validation
+      const { name, category, price, quantity, description, image_url, ingredients, is_active } = req.body;    // Validation
     if (!name || !category || !price || quantity === undefined) {
       return res.status(400).json({ 
         error: 'Missing fields',
@@ -127,7 +125,10 @@ async function createSweet(req, res, supabase) {
         category: category.trim(), 
         price: parseFloat(price), 
         quantity: parseInt(quantity),
-        description: description?.trim() || ''
+        description: description?.trim() || '',
+        image_url: image_url || null,
+        ingredients: ingredients || [],
+        is_active: is_active !== undefined ? is_active : true
       }])
       .select()
       .single();

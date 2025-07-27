@@ -1,9 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { createSupabaseClient } = require('../supabase/client');
 
-const authMiddleware = async (req, res, next) => {
+const authMiddleware = (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.headers.authorization || req.header('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({ 
@@ -24,7 +25,7 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-const adminMiddleware = async (req, res, next) => {
+const adminMiddleware = (req, res, next) => {
   try {
     if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ 

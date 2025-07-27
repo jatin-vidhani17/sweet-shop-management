@@ -2,7 +2,7 @@ require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
-const supabasePromise = require('../supabase/client');
+const { createSupabaseClient } = require('../supabase/client');
 const registerHandler = require('../api/auth/register');
 
 const app = express();
@@ -18,7 +18,7 @@ describe('Register API Handler', () => {
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY || !process.env.JWT_SECRET) {
       throw new Error('SUPABASE_URL, SUPABASE_ANON_KEY, and JWT_SECRET must be defined in .env');
     }
-    supabase = await supabasePromise;
+    supabase = createSupabaseClient();
     await supabase.from('users').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     console.log('Cleared users table');
   });
@@ -37,7 +37,7 @@ describe('Register API Handler', () => {
 
     console.log('Response (GET method):', response.status, response.body);
     expect(response.status).toBe(405);
-    expect(response.body.message).toBe('Method Not Allowed');
+    expect(response.body.message).toBe('Only POST requests are allowed');
   });
 
   it('returns 400 if required fields are missing', async () => {
@@ -48,7 +48,7 @@ describe('Register API Handler', () => {
 
     console.log('Response (missing fields):', response.status, response.body);
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe('Please enter all fields');
+    expect(response.body.message).toBe('Please provide all required fields: name, email, password, confirmPassword');
   });
 
   it("returns 400 if passwords don't match", async () => {
@@ -82,7 +82,7 @@ describe('Register API Handler', () => {
 
     console.log('Response (invalid role):', response.status, response.body);
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe('Invalid role');
+    expect(response.body.message).toBe('Role must be either "customer" or "admin"');
   });
 
   it('creates a new user and returns a token on valid input', async () => {

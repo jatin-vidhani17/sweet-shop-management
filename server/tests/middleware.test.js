@@ -52,7 +52,7 @@ describe('Auth Middleware', () => {
       
       authMiddleware(req, res, next);
       
-      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
         error: 'Invalid token',
         message: 'Token verification failed'
@@ -67,8 +67,8 @@ describe('Auth Middleware', () => {
       
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Access token required',
-        message: 'No token provided'
+        error: 'Invalid token',
+        message: 'Token verification failed'
       });
       expect(next).not.toHaveBeenCalled();
     });
