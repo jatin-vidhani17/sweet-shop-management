@@ -1,33 +1,46 @@
-require('dotenv').config({ path: '../../.env' });
-const supabasePromise = require('../../supabase/client');
-const jwt = require('jsonwebtoken');
-
-// Helper function to verify JWT token
-const verifyToken = (req) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    throw new Error('No token provided');
-  }
-  
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return decoded.user;
-  } catch (error) {
-    throw new Error('Invalid token');
-  }
-};
+const { createSupabaseClient } = require('../../supabase/client');
+const { authMiddleware, adminMiddleware } = require('../../middleware/auth');
 
 module.exports = async (req, res) => {
+  const supabase = createSupabaseClient();
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ 
+      error: 'Missing parameter',
+      message: 'Sweet ID is required' 
+    });
+  }
+
   try {
-    const supabase = await supabasePromise;
-    const sweetId = req.query.id || req.params?.id;
+    // Apply authentication middleware for all routes
+    await new Promise((resolve, reject) => {
+      authMiddleware(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
-    if (!sweetId) {
-      return res.status(400).json({ message: 'Sweet ID is required' });
+    switch (req.method) {
+      case 'GET':
+        return await getSweet(req, res, supabase, id);
+      case 'PUT':
+        return await updateSweet(req, res, supabase, id);
+      case 'DELETE':
+        return await deleteSweet(req, res, supabase, id);
+      default:
+        return res.status(405).json({ 
+          error: 'Method Not Allowed',
+          message: `${req.method} method is not supported` 
+        });
     }
-
-    // PUT /api/sweets/[id] - Update sweet
-    if (req.method === 'PUT') {
+  } catch (authError) {
+    return res.status(401).json({ 
+      error: 'Authentication failed',
+      message: authError.message || 'Please provide valid authentication'
+    });
+  }
+};
       try {
         const user = verifyToken(req);
         
