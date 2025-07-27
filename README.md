@@ -91,12 +91,29 @@ npm test
 ### 6. Deploy to Vercel
 
 ```bash
-# Install Vercel CLI
+# Install Vercel CLI (if not already installed)
 npm i -g vercel
 
-# Deploy
+# Navigate to server directory
+cd server
+
+# Login to Vercel
+vercel login
+
+# Deploy (first time will prompt for project configuration)
 vercel
+
+# Set environment variables in Vercel dashboard:
+# SUPABASE_URL=https://ubvavqknzaamaxdwfdbw.supabase.co
+# SUPABASE_ANON_KEY=your_anon_key
+# SUPABASE_SERVICE_KEY=your_service_key  
+# JWT_SECRET=087b3d4974a40c8df7a93e23f3779d98
 ```
+
+**Important Notes:**
+- This is an **API-only project** with serverless functions
+- No frontend build is required - the `public` directory is minimal
+- All API endpoints will be available at `https://your-app.vercel.app/api/...`
 
 ## 📚 API Documentation
 

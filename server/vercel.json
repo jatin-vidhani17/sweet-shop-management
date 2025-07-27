@@ -1,11 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/auth/register",
@@ -34,17 +33,8 @@
     {
       "src": "/api/sweets",
       "dest": "/api/sweets.js"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
     }
   ],
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
