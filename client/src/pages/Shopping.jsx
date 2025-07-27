@@ -42,11 +42,21 @@ const Shopping = () => {
   const fetchSweets = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/sweets');
-      const sweetsData = response.data.sweets || [];
+      const response = await axios.get('https://sweet-shop-management-psi.vercel.app/api/sweets', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      // Handle the new response structure from server
+      const sweetsData = Array.isArray(response.data) ? response.data : 
+                        (response.data?.data && Array.isArray(response.data.data)) ? response.data.data : [];
       setSweets(sweetsData);
+      console.log('Fetched sweets for shopping:', sweetsData);
     } catch (error) {
       console.error('Error fetching sweets:', error);
+      // Set empty array as fallback
+      setSweets([]);
     } finally {
       setLoading(false);
     }
@@ -209,27 +219,29 @@ const Shopping = () => {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading sweet treats...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 pt-20">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading sweet treats...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="shopping-container">
-      <div className="container">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 pt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="shopping-header">
-          <h1 className="page-title">Sweet Shopping</h1>
-          <p className="page-subtitle">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Sweet Shopping</h1>
+          <p className="text-xl text-gray-600">
             Discover our delicious collection of sweets and treats
           </p>
         </div>
 
         {/* Search and Filters */}
-        <div className="search-section">
-          <div className="search-bar">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
             <Search size={20} />
             <input
               type="text"

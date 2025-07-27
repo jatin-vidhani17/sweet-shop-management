@@ -165,15 +165,21 @@ export function AdminDashboard() {
 
             const response = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: JSON.stringify(sweetData)
             });
 
             if (response.ok) {
+                console.log('Sweet saved successfully');
                 fetchSweets();
                 resetForm();
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
+            } else {
+                console.error('Failed to save sweet:', response.status, await response.text());
             }
         } catch (error) {
             console.error('Error saving sweet:', error);
@@ -539,9 +545,9 @@ export function AdminDashboard() {
             {/* Add Sweet Modal */}
             <Dialog open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} className="relative z-50">
                 <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-                <div className="fixed inset-0 flex items-center justify-center p-4">
-                    <Dialog.Panel className="w-full max-w-md bg-white rounded-xl shadow-lg">
-                        <div className="flex items-center justify-between p-6 border-b">
+                <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
+                    <Dialog.Panel className="w-full max-w-2xl bg-white rounded-xl shadow-lg my-8 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
                             <Dialog.Title className="text-lg font-semibold">Add New Sweet</Dialog.Title>
                             <button
                                 onClick={() => setIsAddModalOpen(false)}
@@ -682,9 +688,9 @@ export function AdminDashboard() {
             {/* Edit Sweet Modal */}
             <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="relative z-50">
                 <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-                <div className="fixed inset-0 flex items-center justify-center p-4">
-                    <Dialog.Panel className="w-full max-w-md bg-white rounded-xl shadow-lg">
-                        <div className="flex items-center justify-between p-6 border-b">
+                <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
+                    <Dialog.Panel className="w-full max-w-2xl bg-white rounded-xl shadow-lg my-8 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
                             <Dialog.Title className="text-lg font-semibold">Edit Sweet</Dialog.Title>
                             <button
                                 onClick={() => setIsEditModalOpen(false)}

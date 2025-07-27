@@ -41,7 +41,11 @@ const Home = () => {
       });
       
       console.log('Dashboard API response:', response.data);
-      const sweets = Array.isArray(response.data) ? response.data : [];
+      // Handle the new response structure from server
+      const sweets = Array.isArray(response.data) ? response.data : 
+                    (response.data?.data && Array.isArray(response.data.data)) ? response.data.data : [];
+      
+      console.log('Processed sweets array:', sweets);
       
       // Calculate stats
       const lowStockCount = sweets.filter(sweet => (sweet.stock || sweet.quantity || 0) < 10).length;
@@ -109,7 +113,7 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 pt-20">
       {/* Hero Section */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -237,415 +241,107 @@ const Home = () => {
       </section>
 
       {/* Featured Sweets Section */}
-      <section className="featured-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Featured Sweets</h2>
-            <Link to="/shopping" className="section-link">
-              View All <ArrowRight size={16} />
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900">Featured Sweets</h2>
+            <Link to="/shopping" className="flex items-center text-orange-500 hover:text-orange-600 font-medium">
+              View All <ArrowRight size={16} className="ml-1" />
             </Link>
           </div>
-          <div className="featured-grid">
-            {featuredSweets.map((sweet) => (
-              <SweetCard key={sweet.id} sweet={sweet} />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {featuredSweets.length > 0 ? featuredSweets.map((sweet) => (
+              <div key={sweet.id} className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 text-center shadow-lg transform hover:scale-105 transition-transform duration-200">
+                <div className="flex justify-center mb-4">
+                  {sweet.image_url && sweet.image_url.startsWith('http') ? (
+                    <img 
+                      src={sweet.image_url} 
+                      alt={sweet.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                  ) : (
+                    <Candy size={40} className="text-orange-500" />
+                  )}
+                  <Candy size={40} className="text-orange-500" style={{display: sweet.image_url && sweet.image_url.startsWith('http') ? 'none' : 'block'}} />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">{sweet.name}</h4>
+                <p className="text-orange-600 font-medium mb-2">{sweet.category}</p>
+                <div className="text-xl font-bold text-orange-500 mb-3">₹{sweet.price}</div>
+                <div className="text-sm">
+                  {(sweet.quantity || sweet.stock || 0) > 10 ? (
+                    <span className="text-green-600 bg-green-100 px-2 py-1 rounded">In Stock ({sweet.quantity || sweet.stock})</span>
+                  ) : (sweet.quantity || sweet.stock || 0) > 0 ? (
+                    <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded">Low Stock ({sweet.quantity || sweet.stock})</span>
+                  ) : (
+                    <span className="text-red-600 bg-red-100 px-2 py-1 rounded">Out of Stock</span>
+                  )}
+                </div>
+              </div>
+            )) : (
+              <div className="col-span-3 text-center py-12">
+                <Candy size={64} className="text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No sweets available</h3>
+                <p className="text-gray-500">Admin needs to add some delicious sweets first!</p>
+                {isAdmin && (
+                  <Link to="/admin" className="mt-4 inline-block bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    Add Sweets
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {/* Quick Actions Section */}
-      <section className="actions-section">
-        <div className="container">
-          <h2 className="section-title">Quick Actions</h2>
-          <div className="actions-grid">
+      <section className="py-16 bg-gradient-to-br from-orange-50 to-orange-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {isAdmin ? (
               <>
-                <Link to="/admin" className="action-card">
-                  <Settings size={32} />
-                  <h4>Manage Inventory</h4>
-                  <p>Add, edit, or remove sweet products</p>
+                <Link to="/admin" className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-orange-500 group">
+                  <Settings size={32} className="text-orange-500 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-xl font-semibold text-gray-800 mb-2">Manage Inventory</h4>
+                  <p className="text-gray-600">Add, edit, or remove sweet products</p>
                 </Link>
-                <Link to="/admin" className="action-card">
-                  <TrendingUp size={32} />
-                  <h4>View Analytics</h4>
-                  <p>Track sales and performance metrics</p>
+                <Link to="/admin" className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-orange-500 group">
+                  <TrendingUp size={32} className="text-orange-500 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-xl font-semibold text-gray-800 mb-2">View Analytics</h4>
+                  <p className="text-gray-600">Track sales and performance metrics</p>
                 </Link>
-                <Link to="/admin" className="action-card">
-                  <Users size={32} />
-                  <h4>Customer Management</h4>
-                  <p>View and manage customer accounts</p>
+                <Link to="/admin" className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-orange-500 group">
+                  <Users size={32} className="text-orange-500 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-xl font-semibold text-gray-800 mb-2">Customer Management</h4>
+                  <p className="text-gray-600">View and manage customer accounts</p>
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/shopping" className="action-card">
-                  <ShoppingCart size={32} />
-                  <h4>Browse Sweets</h4>
-                  <p>Explore our delicious collection</p>
+                <Link to="/shopping" className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-orange-500 group">
+                  <ShoppingCart size={32} className="text-orange-500 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-xl font-semibold text-gray-800 mb-2">Browse Sweets</h4>
+                  <p className="text-gray-600">Explore our delicious collection</p>
                 </Link>
-                <Link to="/shopping" className="action-card">
-                  <Heart size={32} />
-                  <h4>Favorites</h4>
-                  <p>View your saved sweet items</p>
+                <Link to="/shopping" className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-orange-500 group">
+                  <Heart size={32} className="text-orange-500 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-xl font-semibold text-gray-800 mb-2">Favorites</h4>
+                  <p className="text-gray-600">View your saved sweet items</p>
                 </Link>
-                <Link to="/shopping" className="action-card">
-                  <Gift size={32} />
-                  <h4>Gift Cards</h4>
-                  <p>Purchase sweet gift cards</p>
+                <Link to="/shopping" className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-orange-500 group">
+                  <Gift size={32} className="text-orange-500 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-xl font-semibold text-gray-800 mb-2">Gift Cards</h4>
+                  <p className="text-gray-600">Purchase sweet gift cards</p>
                 </Link>
               </>
             )}
           </div>
         </div>
       </section>
-
-      <style jsx>{`
-        .home-container {
-          min-height: calc(100vh - 70px);
-          animation: fadeIn 0.6s ease-out;
-        }
-
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 50vh;
-          gap: 1rem;
-        }
-
-        /* Hero Section */
-        .hero-section {
-          background: var(--orange-gradient);
-          color: white;
-          padding: 4rem 0;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .hero-section::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="candy" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="15" cy="15" r="4" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23candy)"/></svg>');
-          opacity: 0.3;
-        }
-
-        .hero-content {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 3rem;
-          align-items: center;
-          position: relative;
-          z-index: 1;
-        }
-
-        .hero-title {
-          font-size: 3rem;
-          font-weight: 800;
-          margin-bottom: 1rem;
-          line-height: 1.2;
-        }
-
-        .hero-subtitle {
-          font-size: 1.25rem;
-          margin-bottom: 2rem;
-          opacity: 0.9;
-          line-height: 1.6;
-        }
-
-        .hero-actions {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .hero-visual {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-        }
-
-        .hero-candy {
-          animation: float 3s ease-in-out infinite;
-        }
-
-        .floating-icons {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-        }
-
-        .float-1, .float-2, .float-3 {
-          position: absolute;
-          animation: float 2s ease-in-out infinite;
-          color: rgba(255, 255, 255, 0.7);
-        }
-
-        .float-1 {
-          top: 20%;
-          left: 20%;
-          animation-delay: 0.5s;
-        }
-
-        .float-2 {
-          top: 60%;
-          right: 20%;
-          animation-delay: 1s;
-        }
-
-        .float-3 {
-          bottom: 20%;
-          left: 40%;
-          animation-delay: 1.5s;
-        }
-
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-
-        /* Stats Section */
-        .stats-section {
-          padding: 4rem 0;
-          background: white;
-        }
-
-        .section-title {
-          text-align: center;
-          font-size: 2.5rem;
-          font-weight: 700;
-          color: var(--orange-text);
-          margin-bottom: 3rem;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 2rem;
-        }
-
-        .stat-card {
-          background: white;
-          padding: 2rem;
-          border-radius: var(--border-radius);
-          box-shadow: var(--shadow);
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-          transition: var(--transition);
-        }
-
-        .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: var(--shadow-hover);
-        }
-
-        .stat-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .stat-content {
-          flex: 1;
-        }
-
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: var(--orange-text);
-          margin-bottom: 0.25rem;
-        }
-
-        .stat-title {
-          font-weight: 600;
-          color: var(--black);
-          margin-bottom: 0.25rem;
-        }
-
-        .stat-description {
-          font-size: 0.9rem;
-          color: var(--gray);
-        }
-
-        /* Featured Section */
-        .featured-section {
-          padding: 4rem 0;
-          background: var(--light-gray);
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 3rem;
-        }
-
-        .section-link {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--primary-orange);
-          text-decoration: none;
-          font-weight: 600;
-          transition: var(--transition);
-        }
-
-        .section-link:hover {
-          color: var(--dark-orange);
-        }
-
-        .featured-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 2rem;
-        }
-
-        .featured-sweet-card {
-          background: white;
-          border-radius: var(--border-radius);
-          overflow: hidden;
-          box-shadow: var(--shadow);
-          transition: var(--transition);
-        }
-
-        .featured-sweet-card:hover {
-          transform: translateY(-5px);
-          box-shadow: var(--shadow-hover);
-        }
-
-        .sweet-image-placeholder {
-          height: 150px;
-          background: var(--orange-light);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .sweet-info {
-          padding: 1.5rem;
-        }
-
-        .sweet-name {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--orange-text);
-          margin-bottom: 0.5rem;
-        }
-
-        .sweet-category {
-          color: var(--gray);
-          margin-bottom: 0.75rem;
-        }
-
-        .sweet-price {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--primary-orange);
-          margin-bottom: 0.5rem;
-        }
-
-        .sweet-stock {
-          font-size: 0.9rem;
-          font-weight: 600;
-        }
-
-        .stock-good { color: var(--success); }
-        .stock-low { color: var(--warning); }
-        .stock-out { color: var(--error); }
-
-        /* Actions Section */
-        .actions-section {
-          padding: 4rem 0;
-          background: white;
-        }
-
-        .actions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 2rem;
-        }
-
-        .action-card {
-          background: white;
-          padding: 2rem;
-          border-radius: var(--border-radius);
-          box-shadow: var(--shadow);
-          text-decoration: none;
-          color: inherit;
-          transition: var(--transition);
-          text-align: center;
-          border: 2px solid transparent;
-        }
-
-        .action-card:hover {
-          transform: translateY(-5px);
-          box-shadow: var(--shadow-hover);
-          border-color: var(--primary-orange);
-        }
-
-        .action-card svg {
-          color: var(--primary-orange);
-          margin-bottom: 1rem;
-        }
-
-        .action-card h4 {
-          color: var(--orange-text);
-          margin-bottom: 0.5rem;
-          font-size: 1.25rem;
-        }
-
-        .action-card p {
-          color: var(--gray);
-          font-size: 0.9rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-          .hero-content {
-            grid-template-columns: 1fr;
-            text-align: center;
-            gap: 2rem;
-          }
-
-          .hero-title {
-            font-size: 2rem;
-          }
-
-          .hero-subtitle {
-            font-size: 1.1rem;
-          }
-
-          .section-title {
-            font-size: 2rem;
-          }
-
-          .section-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: center;
-          }
-
-          .stats-grid,
-          .featured-grid,
-          .actions-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .stat-card {
-            flex-direction: column;
-            text-align: center;
-          }
-        }
-      `}</style>
     </div>
   );
 };

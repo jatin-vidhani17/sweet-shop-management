@@ -73,11 +73,21 @@ const Landing = () => {
       
       console.log('Sweets API response:', response.data);
       
-      if (response.data && Array.isArray(response.data)) {
+      // Handle the new response structure from server
+      let sweets = [];
+      if (Array.isArray(response.data)) {
+        sweets = response.data;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        sweets = response.data.data;
+      }
+      
+      console.log('Processed sweets for landing:', sweets);
+      
+      if (sweets.length > 0) {
         // Take first 3 sweets for featured section
-        setFeaturedSweets(response.data.slice(0, 3));
+        setFeaturedSweets(sweets.slice(0, 3));
       } else {
-        console.warn('Invalid API response, using fallback data');
+        console.warn('No sweets found in API response, using fallback data');
         setFeaturedSweets(fallbackSweets);
       }
     } catch (error) {
@@ -122,9 +132,9 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 pt-20">
       {/* Navigation */}
-      <nav className="bg-white shadow-lg">
+      <nav className="bg-white shadow-lg fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -152,7 +162,7 @@ const Landing = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden pt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
           <div className="text-center">
             <div className="flex justify-center mb-6">
