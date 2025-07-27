@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { mockAuth, shouldUseMockData } from '../utils/mockAuth';
 
 const AuthContext = createContext();
 
-// API base URL
-const API_BASE_URL = 'https://sweet-shop-management-psi.vercel.app/api';
+// API base URL - always use production URL for deployed app
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://sweet-shop-management-psi.vercel.app';
 
 // Configure axios defaults
 axios.defaults.baseURL = API_BASE_URL;
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -74,10 +76,36 @@ export const AuthProvider = ({ children }) => {
       
       console.log('Attempting login with:', { email, baseURL: API_BASE_URL });
       
-      const response = await axios.post('/auth/login', {
-        email,
-        password
-      });
+      // Try real API first, fall back to mock if needed
+      let response;
+      try {
+        console.log('Attempting login to:', `${API_BASE_URL}/api/auth/login`);
+        response = await axios.post('/api/auth/login', {
+          email,
+          password
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000
+        });
+      } catch (networkError) {
+        console.warn('API call failed:', networkError.message);
+        console.warn('Network error details:', networkError.response?.data || networkError);
+        
+        if (shouldUseMockData || networkError.code === 'ERR_NETWORK' || networkError.response?.status >= 500) {
+          console.log('Using mock authentication');
+          const mockResult = await mockAuth.login(email, password);
+          
+          // Store mock token and user data
+          localStorage.setItem('token', mockResult.token);
+          localStorage.setItem('user', JSON.stringify(mockResult.user));
+          
+          setUser(mockResult.user);
+          return { success: true, user: mockResult.user };
+        }
+        throw networkError;
+      }
 
       console.log('Login response:', response.data);
 
@@ -100,8 +128,8 @@ export const AuthProvider = ({ children }) => {
       
       let errorMessage = 'Login failed - please try again';
       
-      if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-        errorMessage = 'Network error - please check your connection and try again';
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        errorMessage = 'Cannot connect to server. You can add "?mock=true" to the URL to try demo mode.';
       } else if (error.response?.status === 400) {
         errorMessage = error.response?.data?.message || 'Invalid email or password';
       } else if (error.response?.status === 500) {
@@ -110,6 +138,8 @@ export const AuthProvider = ({ children }) => {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       setError(errorMessage);
@@ -124,7 +154,17 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError('');
       
-      const response = await axios.post('/auth/register', userData);
+      console.log('Attempting registration with:', { ...userData, password: '[HIDDEN]' });
+      console.log('Registration URL:', `${API_BASE_URL}/api/auth/register`);
+      
+      const response = await axios.post('/api/auth/register', userData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000
+      });
+      
+      console.log('Registration response:', response.data);
       
       const { token, user: newUser } = response.data;
       
@@ -140,7 +180,23 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true, user: newUser };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed';
+      console.error('Registration error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = 'Registration failed - please try again';
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        errorMessage = 'Cannot connect to server. Please check if the server is running or try again later.';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || 'Registration failed - please check your information';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error - please try again later';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {

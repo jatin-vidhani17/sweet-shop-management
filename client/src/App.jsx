@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -63,6 +64,9 @@ function AppContent() {
       {user && <Navbar />}
       <main className="main-content">
         <Routes>
+          {/* Landing Page */}
+          <Route path="/landing" element={<Landing />} />
+          
           {/* Public Routes */}
           <Route path="/login" element={
             <PublicRoute>
@@ -77,9 +81,13 @@ function AppContent() {
           
           {/* Protected Routes */}
           <Route path="/" element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
+            user ? (
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            ) : (
+              <Navigate to="/landing" replace />
+            )
           } />
           <Route path="/shopping" element={
             <ProtectedRoute>
@@ -88,12 +96,12 @@ function AppContent() {
           } />
           <Route path="/admin" element={
             <ProtectedRoute requiredRole="admin">
-             < AdminDashboard />
+              <AdminDashboard />
             </ProtectedRoute>
           } />
           
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch all route - redirect to landing for unauthenticated users */}
+          <Route path="*" element={user ? <Navigate to="/" replace /> : <Navigate to="/landing" replace />} />
         </Routes>
       </main>
     </div>
@@ -103,7 +111,12 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <AppContent />
       </Router>
     </AuthProvider>

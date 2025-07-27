@@ -10,21 +10,26 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
+  // Set CORS headers for all responses
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
   const supabase = createSupabaseClient();
 
   try {
-    // Apply authentication middleware for all routes
-    await new Promise((resolve, reject) => {
-      authMiddleware(req, res, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-
     switch (req.method) {
       case 'GET':
+        // GET requests are public - no authentication required for browsing sweets
         return await getSweets(req, res, supabase);
       case 'POST':
+        // POST requests require authentication
+        await new Promise((resolve, reject) => {
+          authMiddleware(req, res, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
         return await createSweet(req, res, supabase);
       default:
         return res.status(405).json({ 

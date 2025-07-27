@@ -81,6 +81,7 @@ const Register = () => {
         name: formData.name.trim(),
         email: formData.email.toLowerCase(),
         password: formData.password,
+        confirmPassword: formData.confirmPassword, // Add this field that server expects
         role: 'customer'
       };
       
