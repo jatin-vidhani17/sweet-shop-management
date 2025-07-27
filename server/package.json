@@ -8,7 +8,7 @@
     "test:coverage": "jest --coverage",
     "start": "node test-server.js",
     "dev": "nodemon test-server.js",
-    "build": "echo 'API-only project - no build required'",
+    "build": "if not exist public mkdir public && echo Build complete - API functions ready > public/.build",
     "init-db": "node scripts/init-db.js"
   },
   "keywords": [],

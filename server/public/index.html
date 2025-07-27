@@ -1,5 +1,128 @@
-# Sweet Shop Management API
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet Shop Management API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .endpoint {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .method {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .description {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .status {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🍬 Sweet Shop Management API</h1>
+        <p>Serverless API for sweet shop inventory and user management</p>
+    </div>
 
-API-only project - no frontend build required.
+    <div class="status">
+        ✅ <strong>API Status:</strong> All endpoints operational and ready for production
+    </div>
 
-This project contains serverless API functions for Vercel deployment.
+    <h2>📚 API Endpoints</h2>
+
+    <div class="endpoint">
+        <div><span class="method">POST</span> /api/auth/register</div>
+        <div class="description">Register a new user (customer or admin)</div>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">POST</span> /api/auth/login</div>
+        <div class="description">User login with JWT token generation</div>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">GET</span> /api/sweets</div>
+        <div class="description">Get all sweets with pagination support</div>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">POST</span> /api/sweets</div>
+        <div class="description">Create new sweet (Admin only)</div>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">GET</span> /api/sweets/search</div>
+        <div class="description">Search sweets by name, category, and price range</div>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">GET/PUT/DELETE</span> /api/sweets/{id}</div>
+        <div class="description">Individual sweet operations</div>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">POST</span> /api/sweets/{id}/purchase</div>
+        <div class="description">Purchase sweet with stock management</div>
+    </div>
+
+    <div class="endpoint">
+        <div><span class="method">POST</span> /api/sweets/{id}/restock</div>
+        <div class="description">Restock sweet inventory (Admin only)</div>
+    </div>
+
+    <h2>🛠️ Tech Stack</h2>
+    <ul>
+        <li><strong>Backend:</strong> Node.js Serverless Functions</li>
+        <li><strong>Database:</strong> Supabase PostgreSQL</li>
+        <li><strong>Authentication:</strong> JWT Tokens</li>
+        <li><strong>Deployment:</strong> Vercel</li>
+        <li><strong>Testing:</strong> Jest + Supertest (46+ tests)</li>
+    </ul>
+
+    <h2>🚀 Features</h2>
+    <ul>
+        <li>✅ User Authentication & Authorization</li>
+        <li>✅ Role-based Access Control (Customer/Admin)</li>
+        <li>✅ Sweet Inventory Management</li>
+        <li>✅ Search & Filtering</li>
+        <li>✅ Purchase System with Stock Management</li>
+        <li>✅ Admin Restock Operations</li>
+        <li>✅ Image Storage Support</li>
+        <li>✅ Comprehensive Test Coverage</li>
+    </ul>
+
+    <div class="status">
+        🎯 <strong>Development:</strong> Built with Test-Driven Development (TDD) methodology
+    </div>
+
+    <footer style="text-align: center; margin-top: 3rem; color: #6c757d;">
+        <p>Built with ❤️ for Incubyte Assessment</p>
+        <p>API-only project - No frontend build required</p>
+    </footer>
+</body>
+</html>

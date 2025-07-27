@@ -5,36 +5,6 @@
       "maxDuration": 30
     }
   },
-  "routes": [
-    {
-      "src": "/api/auth/register",
-      "dest": "/api/auth/register.js"
-    },
-    {
-      "src": "/api/auth/login", 
-      "dest": "/api/auth/login.js"
-    },
-    {
-      "src": "/api/sweets/search",
-      "dest": "/api/sweets/search.js"
-    },
-    {
-      "src": "/api/sweets/([^/]+)/purchase",
-      "dest": "/api/sweets/[id]/purchase.js?id=$1"
-    },
-    {
-      "src": "/api/sweets/([^/]+)/restock",
-      "dest": "/api/sweets/[id]/restock.js?id=$1"
-    },
-    {
-      "src": "/api/sweets/([^/]+)",
-      "dest": "/api/sweets/[id].js?id=$1"
-    },
-    {
-      "src": "/api/sweets",
-      "dest": "/api/sweets.js"
-    }
-  ],
   "headers": [
     {
       "source": "/api/(.*)",
