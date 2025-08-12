@@ -25,13 +25,6 @@ To access the admin dashboard and test administrative features, use the followin
 ## 👥 Test User Accounts
 
 For testing customer features, you can register new accounts or use existing demo accounts.
-<img width="1366" height="768" alt="shopping-page" src="https://github.com/user-attachments/assets/bcce614e-c882-4ebc-ad3d-a36ba537ad06" />
-<img width="1366" height="768" alt="register-page" src="https://github.com/user-attachments/assets/6b8bea6e-157c-4bce-9105-aac17afcc0cf" />
-<img width="1366" height="768" alt="mobile-view" src="https://github.com/user-attachments/assets/b41f2b70-8a46-465c-883e-aada52ae89a5" />
-<img width="1366" height="768" alt="login-page" src="https://github.com/user-attachments/assets/f1f597bd-f4e9-43e6-9b3e-3342bd41664e" />
-<img width="1366" height="768" alt="landing-page" src="https://github.com/user-attachments/assets/149de532-4842-4931-b74a-122649350088" />
-<img width="1366" height="768" alt="admin-dashboard" src="https://github.com/user-attachments/assets/95b5ce0a-8fdf-4f76-8866-5852a6c673f0" />
-<img width="1366" height="768" alt="upload-sweets" src="https://github.com/user-attachments/assets/923fffa9-83af-4d96-a534-b198868871ef" />
 
 ## 📱 Screenshots
 
