@@ -235,14 +235,6 @@ export function AdminDashboard() {
             alert(`Failed to save sweet: ${error.message || 'Unknown error'}. Please try again.`);
         }
     };
-            } else {
-                console.error('Failed to save sweet:', response.status, await response.text());
-            }
-        } catch (error) {
-            console.error('Error saving sweet:', error);
-            alert('Failed to save sweet. Please try again.');
-        }
-    };
 
     const resetForm = () => {
         setFormData({
