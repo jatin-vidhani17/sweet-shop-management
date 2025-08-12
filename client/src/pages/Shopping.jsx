@@ -109,9 +109,14 @@ const Shopping = () => {
     try {
       setPurchaseLoading(prev => ({ ...prev, [sweetId]: true }));
       
-      await axios.post(`/sweets/${sweetId}/purchase`, {
+      await axios.post(`https://sweet-shop-management-psi.vercel.app/api/sweets/${sweetId}/purchase`, {
         quantity,
         customerId: user.id
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
 
       // Update the sweet quantity locally
@@ -187,7 +192,7 @@ const Shopping = () => {
         <p className="sweet-description">{sweet.description || 'Delicious sweet treat'}</p>
         
         <div className="sweet-footer">
-          <div className="sweet-price">${sweet.price}</div>
+          <div className="sweet-price">₹{sweet.price}</div>
           <div className="sweet-stock">
             {sweet.quantity > 10 ? (
               <span className="stock-good">In Stock</span>

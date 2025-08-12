@@ -183,6 +183,7 @@ export function AdminDashboard() {
             }
         } catch (error) {
             console.error('Error saving sweet:', error);
+            alert('Failed to save sweet. Please try again.');
         }
     };
 
@@ -308,7 +309,7 @@ export function AdminDashboard() {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                                <p className="text-2xl font-bold text-gray-900">${analytics.totalRevenue.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900">₹{analytics.totalRevenue.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -487,7 +488,7 @@ export function AdminDashboard() {
                                             <div className="flex-1">
                                                 <h3 className="font-semibold text-gray-900 truncate">{sweet.name}</h3>
                                                 <p className="text-sm text-gray-600 capitalize">{sweet.category}</p>
-                                                <p className="text-lg font-bold text-orange-600">${sweet.price}</p>
+                                                <p className="text-lg font-bold text-orange-600">₹{sweet.price}</p>
                                             </div>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${sweet.quantity < 10
                                                     ? 'bg-red-100 text-red-800'
@@ -619,7 +620,7 @@ export function AdminDashboard() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ()</label>
                                     <input
                                         type="number"
                                         name="price"
@@ -769,7 +770,7 @@ export function AdminDashboard() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ()</label>
                                     <input
                                         type="number"
                                         name="price"

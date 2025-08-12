@@ -7,6 +7,24 @@ A modern, responsive sweet shop management application built with React, Vite, a
 🔗 **Frontend Application**: [https://sweet-shop-management-client.vercel.app](https://sweet-shop-management-client.vercel.app)
 
 > Replace with your actual Vercel deployment URL
+
+## 👤 Admin Credentials
+
+To access the admin dashboard and test administrative features, use the following credentials:
+
+- **Email**: `jatinvidhani17@gmail.com`
+- **Password**: `admin12345`
+
+**Admin Features**:
+- Add, edit, and delete sweets
+- Manage inventory and stock levels
+- View sales analytics and reports
+- Upload sweet images to Supabase storage
+- Monitor low stock items
+
+## 👥 Test User Accounts
+
+For testing customer features, you can register new accounts or use existing demo accounts.
 <img width="1366" height="768" alt="shopping-page" src="https://github.com/user-attachments/assets/bcce614e-c882-4ebc-ad3d-a36ba537ad06" />
 <img width="1366" height="768" alt="register-page" src="https://github.com/user-attachments/assets/6b8bea6e-157c-4bce-9105-aac17afcc0cf" />
 <img width="1366" height="768" alt="mobile-view" src="https://github.com/user-attachments/assets/b41f2b70-8a46-465c-883e-aada52ae89a5" />

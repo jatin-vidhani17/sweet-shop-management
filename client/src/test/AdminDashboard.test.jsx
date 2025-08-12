@@ -27,6 +27,16 @@ vi.mock('axios', () => ({
   }
 }))
 
+// Mock react-dropzone
+vi.mock('react-dropzone', () => ({
+  useDropzone: vi.fn(() => ({
+    getRootProps: vi.fn(() => ({ onClick: vi.fn() })),
+    getInputProps: vi.fn(() => ({})),
+    isDragActive: false,
+    acceptedFiles: []
+  }))
+}))
+
 // Mock recharts components
 vi.mock('recharts', () => ({
   LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,

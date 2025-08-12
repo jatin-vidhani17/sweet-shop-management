@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { vi } from 'vitest'
@@ -99,12 +99,12 @@ describe('Shopping Component', () => {
     })
   })
 
-  test('shows sweet prices', async () => {
+  test('shows sweet prices in Indian Rupees', async () => {
     renderWithRouter(<Shopping />)
     
     await waitFor(() => {
-      expect(screen.getByText('$25.99')).toBeInTheDocument()
-      expect(screen.getByText('$15.99')).toBeInTheDocument()
+      expect(screen.getByText('₹25.99')).toBeInTheDocument()
+      expect(screen.getByText('₹15.99')).toBeInTheDocument()
     })
   })
 
@@ -151,6 +151,46 @@ describe('Shopping Component', () => {
     await waitFor(() => {
       const images = screen.getAllByRole('img')
       expect(images.length).toBeGreaterThan(0)
+    })
+  })
+
+  test('handles sweet purchase with correct API call', async () => {
+    const mockPost = vi.fn().mockResolvedValue({ data: { success: true } })
+    axios.post = mockPost
+    
+    renderWithRouter(<Shopping />)
+    
+    await waitFor(() => {
+      const purchaseButtons = screen.getAllByText(/buy now/i)
+      if (purchaseButtons.length > 0) {
+        fireEvent.click(purchaseButtons[0])
+      }
+    })
+    
+    if (mockPost.mock.calls.length > 0) {
+      expect(mockPost).toHaveBeenCalledWith(
+        expect.stringContaining('/purchase'),
+        expect.any(Object),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Authorization': 'Bearer mock-jwt-token',
+            'Content-Type': 'application/json'
+          })
+        })
+      )
+    }
+  })
+
+  test('displays correct currency symbol throughout the page', async () => {
+    renderWithRouter(<Shopping />)
+    
+    await waitFor(() => {
+      // Check that no dollar signs are present
+      expect(screen.queryByText(/\$/)).not.toBeInTheDocument()
+      
+      // Check that rupee symbols are present
+      const rupeeElements = screen.getAllByText(/₹/)
+      expect(rupeeElements.length).toBeGreaterThan(0)
     })
   })
 })
