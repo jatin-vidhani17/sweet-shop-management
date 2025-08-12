@@ -24,28 +24,31 @@ const Landing = () => {
     {
       id: 1,
       name: "Chocolate Delights",
-      description: "Rich and creamy chocolate sweets",
+      description: "Rich and creamy chocolate sweets made with premium cocoa",
       image_url: "🍫",
       price: 899,
       rating: 4.8,
+      quantity: 50,
       stock: 50
     },
     {
       id: 2,
       name: "Fruity Gummies",
-      description: "Fresh fruit flavored gummy bears",
+      description: "Fresh fruit flavored gummy bears with natural extracts",
       image_url: "🍬",
       price: 649,
       rating: 4.6,
+      quantity: 75,
       stock: 75
     },
     {
       id: 3,
       name: "Classic Candies",
-      description: "Traditional hard candies assortment",
+      description: "Traditional hard candies assortment with vintage flavors",
       image_url: "🍭",
       price: 1199,
       rating: 4.9,
+      quantity: 30,
       stock: 30
     }
   ];
@@ -226,21 +229,26 @@ const Landing = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {featuredSweets.map((sweet, index) => (
                 <div key={sweet.id || index} className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 text-center transform hover:scale-105 transition-transform duration-200 shadow-lg">
-                  <div className="text-6xl mb-4">
-                    {sweet.image_url && sweet.image_url.startsWith('http') ? (
+                  <div className="mb-4 flex justify-center">
+                    {sweet.image_url && sweet.image_url.startsWith('http') && !sweet.image_url.includes('blob:') ? (
                       <img 
                         src={sweet.image_url} 
                         alt={sweet.name}
-                        className="w-16 h-16 mx-auto object-cover rounded-lg"
+                        className="w-24 h-24 mx-auto object-cover rounded-lg shadow-md"
                         onError={(e) => {
+                          console.log('Image failed to load:', sweet.image_url);
                           e.target.style.display = 'none';
                           e.target.nextSibling.style.display = 'block';
                         }}
                       />
                     ) : (
-                      <span>{sweet.image_url || '🍬'}</span>
+                      <div className="w-24 h-24 bg-orange-200 rounded-lg flex items-center justify-center text-4xl">
+                        {sweet.image_url && sweet.image_url.length === 2 ? sweet.image_url : '🍬'}
+                      </div>
                     )}
-                    <span style={{display: 'none'}}>🍬</span>
+                    <div style={{display: 'none'}} className="w-24 h-24 bg-orange-200 rounded-lg flex items-center justify-center text-4xl">
+                      🍬
+                    </div>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">{sweet.name}</h3>
                   <p className="text-gray-600 mb-4">{sweet.description}</p>
@@ -258,21 +266,21 @@ const Landing = () => {
                   <div className="text-2xl font-bold text-orange-500 mb-2">
                     ₹{typeof sweet.price === 'number' ? sweet.price : sweet.price}
                   </div>
-                  {sweet.stock && (
-                    <div className="text-sm text-gray-500 mb-4">
-                      {sweet.stock > 0 ? `${sweet.stock} in stock` : 'Out of stock'}
-                    </div>
-                  )}
+                  <div className="text-sm text-gray-500 mb-4">
+                    {(sweet.quantity !== undefined ? sweet.quantity : sweet.stock || 0) > 0 
+                      ? `${sweet.quantity !== undefined ? sweet.quantity : sweet.stock} in stock` 
+                      : 'Out of stock'}
+                  </div>
                   <Link
                     to="/register"
                     className={`px-6 py-2 rounded-lg font-medium transition-colors inline-flex items-center ${
-                      sweet.stock > 0 
+                      (sweet.quantity !== undefined ? sweet.quantity : sweet.stock || 0) > 0 
                         ? 'bg-orange-500 hover:bg-orange-600 text-white' 
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    {sweet.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                    {(sweet.quantity !== undefined ? sweet.quantity : sweet.stock || 0) > 0 ? 'Add to Cart' : 'Out of Stock'}
                   </Link>
                 </div>
               ))}

@@ -148,6 +148,51 @@ export function AdminDashboard() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            let imageUrl = null;
+            
+            // Upload image if a new file is selected
+            if (formData.image && typeof formData.image !== 'string') {
+                console.log('Uploading new image...');
+                const reader = new FileReader();
+                const imageUploadPromise = new Promise((resolve, reject) => {
+                    reader.onload = async () => {
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/upload`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                },
+                                body: JSON.stringify({
+                                    file: reader.result,
+                                    fileName: formData.image.name
+                                })
+                            });
+
+                            if (response.ok) {
+                                const uploadResult = await response.json();
+                                console.log('Image uploaded successfully:', uploadResult.data.url);
+                                resolve(uploadResult.data.url);
+                            } else {
+                                const errorData = await response.json();
+                                console.error('Image upload failed:', errorData);
+                                reject(new Error(errorData.message || 'Image upload failed'));
+                            }
+                        } catch (error) {
+                            console.error('Upload error:', error);
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                });
+                
+                reader.readAsDataURL(formData.image);
+                imageUrl = await imageUploadPromise;
+            } else if (editingSweet && editingSweet.image_url) {
+                // Keep existing image URL when editing
+                imageUrl = editingSweet.image_url;
+            }
+
             const sweetData = {
                 name: formData.name,
                 category: formData.category,
@@ -155,8 +200,10 @@ export function AdminDashboard() {
                 quantity: parseInt(formData.quantity),
                 description: formData.description,
                 ingredients: formData.ingredients.split(',').map(i => i.trim()),
-                image_url: formData.image ? URL.createObjectURL(formData.image) : null
+                image_url: imageUrl
             };
+
+            console.log('Submitting sweet data:', sweetData);
 
             const method = editingSweet ? 'PUT' : 'POST';
             const url = editingSweet
@@ -178,6 +225,16 @@ export function AdminDashboard() {
                 resetForm();
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to save sweet:', response.status, errorData);
+                alert(`Failed to save sweet: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error saving sweet:', error);
+            alert(`Failed to save sweet: ${error.message || 'Unknown error'}. Please try again.`);
+        }
+    };
             } else {
                 console.error('Failed to save sweet:', response.status, await response.text());
             }
