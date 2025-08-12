@@ -152,11 +152,16 @@ export function AdminDashboard() {
             
             // Upload image if a new file is selected
             if (formData.image && typeof formData.image !== 'string') {
-                console.log('Uploading new image...');
+                console.log('Uploading new image...', {
+                    fileName: formData.image.name,
+                    fileSize: formData.image.size,
+                    fileType: formData.image.type
+                });
                 const reader = new FileReader();
                 const imageUploadPromise = new Promise((resolve, reject) => {
                     reader.onload = async () => {
                         try {
+                            console.log('File read complete, sending to API...');
                             const response = await fetch(`${API_BASE_URL}/upload`, {
                                 method: 'POST',
                                 headers: {
@@ -169,12 +174,15 @@ export function AdminDashboard() {
                                 })
                             });
 
+                            const responseText = await response.text();
+                            console.log('Upload API response:', response.status, responseText);
+
                             if (response.ok) {
-                                const uploadResult = await response.json();
+                                const uploadResult = JSON.parse(responseText);
                                 console.log('Image uploaded successfully:', uploadResult.data.url);
                                 resolve(uploadResult.data.url);
                             } else {
-                                const errorData = await response.json();
+                                const errorData = JSON.parse(responseText);
                                 console.error('Image upload failed:', errorData);
                                 reject(new Error(errorData.message || 'Image upload failed'));
                             }

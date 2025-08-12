@@ -241,14 +241,22 @@ const Landing = () => {
                           e.target.nextSibling.style.display = 'block';
                         }}
                       />
-                    ) : (
-                      <div className="w-24 h-24 bg-orange-200 rounded-lg flex items-center justify-center text-4xl">
-                        {sweet.image_url && sweet.image_url.length === 2 ? sweet.image_url : '🍬'}
+                    ) : sweet.image_url && sweet.image_url.includes('supabase') ? (
+                      <img 
+                        src={sweet.image_url} 
+                        alt={sweet.name}
+                        className="w-24 h-24 mx-auto object-cover rounded-lg shadow-md"
+                        onError={(e) => {
+                          console.log('Supabase image failed to load:', sweet.image_url);
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
+                    ) : null}
+                    <div className="w-24 h-24 bg-orange-200 rounded-lg flex items-center justify-center text-4xl" 
+                         style={{display: (sweet.image_url && sweet.image_url.startsWith('http') && !sweet.image_url.includes('blob:')) ? 'none' : 'flex'}}>
+                        {sweet.emoji || '🍬'}
                       </div>
-                    )}
-                    <div style={{display: 'none'}} className="w-24 h-24 bg-orange-200 rounded-lg flex items-center justify-center text-4xl">
-                      🍬
-                    </div>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">{sweet.name}</h3>
                   <p className="text-gray-600 mb-4">{sweet.description}</p>

@@ -170,7 +170,21 @@ const Shopping = () => {
   const SweetCard = ({ sweet, isListView = false }) => (
     <div className={`sweet-card ${isListView ? 'list-view' : ''}`}>
       <div className="sweet-image">
-        <Candy size={isListView ? 30 : 60} color="var(--primary-orange)" />
+        {sweet.image_url && sweet.image_url.startsWith('http') && !sweet.image_url.includes('blob:') ? (
+          <img 
+            src={sweet.image_url} 
+            alt={sweet.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
+          />
+        ) : null}
+        <div style={{display: (sweet.image_url && sweet.image_url.startsWith('http') && !sweet.image_url.includes('blob:')) ? 'none' : 'flex'}} 
+             className="w-full h-full flex items-center justify-center">
+          <Candy size={isListView ? 30 : 60} color="var(--primary-orange)" />
+        </div>
         <button 
           className={`favorite-btn ${favorites.includes(sweet.id) ? 'active' : ''}`}
           onClick={() => toggleFavorite(sweet.id)}
